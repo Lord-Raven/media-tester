@@ -187,7 +187,7 @@ export function MusicStudio({onGenerate, trackHistory, onTrackGenerated}: MusicS
 										Build a track from a title, tags, style, and lyrics.
 									</Typography>
 									<Typography sx={{mt: 1, color: theme.palette.text.secondary}}>
-										Shape the prompt, add removable tags, and launch generation from one clean surface.
+										Exposes core elements of Chub's music endpoint.
 									</Typography>
 								</Box>
 
