@@ -24,7 +24,7 @@ import OpenInNewRoundedIcon from "@mui/icons-material/OpenInNewRounded";
 import MusicNoteRoundedIcon from "@mui/icons-material/MusicNoteRounded";
 import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
 import AutoAwesomeRoundedIcon from "@mui/icons-material/AutoAwesomeRounded";
-import {alpha, useTheme} from "@mui/material/styles";
+import {alpha, createTheme, ThemeProvider} from "@mui/material/styles";
 
 type MusicInputParameters = {
 	title: string;
@@ -48,7 +48,53 @@ type MusicStudioProps = {
 };
 
 export function MusicStudio({onGenerate, trackHistory, onTrackGenerated}: MusicStudioProps) {
-	const theme = useTheme();
+	const theme = useMemo(
+		() =>
+			createTheme({
+				palette: {
+					mode: "dark",
+					primary: {main: "#5ea8ff"},
+					secondary: {main: "#7ce4cb"},
+					background: {
+						default: "#090f1d",
+						paper: "#101b2f",
+					},
+					text: {
+						primary: "#edf3ff",
+						secondary: "#9fb2d3",
+					},
+				},
+				shape: {
+					borderRadius: 14,
+				},
+				components: {
+					MuiPaper: {
+						styleOverrides: {
+							root: {
+								backgroundImage: "none",
+							},
+						},
+					},
+					MuiOutlinedInput: {
+						styleOverrides: {
+							notchedOutline: {
+								borderColor: "rgba(154, 178, 216, 0.28)",
+							},
+							root: {
+								backgroundColor: "rgba(255, 255, 255, 0.02)",
+								"&:hover .MuiOutlinedInput-notchedOutline": {
+									borderColor: "rgba(154, 178, 216, 0.44)",
+								},
+								"&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+									borderColor: "#5ea8ff",
+								},
+							},
+						},
+					},
+				},
+			}),
+		[],
+	);
 	const [title, setTitle] = useState("");
 	const [prompt, setPrompt] = useState("");
 	const [lyrics, setLyrics] = useState("");
@@ -140,13 +186,14 @@ export function MusicStudio({onGenerate, trackHistory, onTrackGenerated}: MusicS
 	}
 
 	return (
-		<Box
+		<ThemeProvider theme={theme}>
+			<Box
 			sx={{
 				minHeight: "100vh",
 				width: "100%",
 				px: {xs: 2, md: 4},
 				py: {xs: 2, md: 4},
-				background: `radial-gradient(circle at top left, ${alpha(theme.palette.primary.main, 0.22)}, transparent 32%), radial-gradient(circle at top right, ${alpha(theme.palette.secondary.main, 0.18)}, transparent 28%), linear-gradient(180deg, ${theme.palette.background.default} 0%, ${alpha(theme.palette.background.paper, 0.92)} 100%)`,
+				background: `radial-gradient(circle at top left, ${alpha(theme.palette.primary.main, 0.26)}, transparent 34%), radial-gradient(circle at top right, ${alpha(theme.palette.secondary.main, 0.2)}, transparent 30%), linear-gradient(180deg, ${theme.palette.background.default} 0%, ${alpha(theme.palette.background.paper, 0.9)} 100%)`,
 				color: theme.palette.text.primary,
 			}}
 		>
@@ -172,7 +219,7 @@ export function MusicStudio({onGenerate, trackHistory, onTrackGenerated}: MusicS
 							overflow: "hidden",
 							border: `1px solid ${alpha(theme.palette.divider, 0.9)}`,
 							backdropFilter: "blur(16px)",
-							background: alpha(theme.palette.background.paper, 0.84),
+							background: alpha(theme.palette.background.paper, 0.82),
 							boxShadow: `0 24px 80px ${alpha(theme.palette.common.black, 0.18)}`,
 						}}
 					>
@@ -381,7 +428,7 @@ export function MusicStudio({onGenerate, trackHistory, onTrackGenerated}: MusicS
 													borderRadius: 3,
 													overflow: "hidden",
 													border: `1px solid ${alpha(theme.palette.divider, 0.85)}`,
-													background: alpha(theme.palette.common.black, 0.05),
+																background: alpha(theme.palette.common.black, 0.28),
 												}}
 											>
 												<audio controls src={trackUrl} style={{width: "100%"}} />
@@ -432,7 +479,7 @@ export function MusicStudio({onGenerate, trackHistory, onTrackGenerated}: MusicS
 											}}
 										>
 											<Typography color="text.secondary">
-												Your generated track will appear here as soon as the URL is returned.
+												Your generated track will appear here when generated.
 											</Typography>
 										</Paper>
 									)}
@@ -509,6 +556,7 @@ export function MusicStudio({onGenerate, trackHistory, onTrackGenerated}: MusicS
 					</motion.div>
 				</Stack>
 			</Box>
-		</Box>
+			</Box>
+		</ThemeProvider>
 	);
 }
