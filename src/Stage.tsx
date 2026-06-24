@@ -10,13 +10,54 @@ type ConfigType = any;
 
 type InitStateType = any;
 
-type ChatStateType = any;
+type TrackHistoryEntry = {
+    title: string;
+    url: string;
+    createdAt: number;
+};
+
+type ChatStateType = {
+    trackHistory: TrackHistoryEntry[];
+};
 
 export class Stage extends StageBase<InitStateType, ChatStateType, MessageStateType, ConfigType> {
 
+    chatState: ChatStateType;
 
     constructor(data: InitialData<InitStateType, ChatStateType, MessageStateType, ConfigType>) {
         super(data);
+
+        this.chatState = {
+            trackHistory: this.normalizeHistory(data.chatState?.trackHistory)
+        };
+    }
+
+    private normalizeHistory(history: unknown): TrackHistoryEntry[] {
+        if (!Array.isArray(history)) {
+            return [];
+        }
+
+        return history
+            .filter((entry): entry is Partial<TrackHistoryEntry> => typeof entry === "object" && entry != null)
+            .map((entry) => {
+                const title = typeof entry.title === "string" ? entry.title.trim() : "";
+                const url = typeof entry.url === "string" ? entry.url.trim() : "";
+                const createdAt = typeof entry.createdAt === "number" ? entry.createdAt : Date.now();
+
+                return {title, url, createdAt};
+            })
+            .filter((entry) => entry.title.length > 0 && entry.url.length > 0)
+            .slice(0, 10);
+    }
+
+    private async addTrackToHistory(trackEntry: TrackHistoryEntry): Promise<void> {
+        const updatedHistory = [
+            trackEntry,
+            ...this.chatState.trackHistory.filter((entry) => entry.url !== trackEntry.url),
+        ].slice(0, 10);
+
+        this.chatState.trackHistory = updatedHistory;
+        await this.save();
     }
 
     async load(): Promise<Partial<LoadResponse<InitStateType, ChatStateType, MessageStateType>>> {
@@ -24,8 +65,12 @@ export class Stage extends StageBase<InitStateType, ChatStateType, MessageStateT
             success: true,
             error: null,
             initState: null,
-            chatState: null,
+            chatState: this.chatState,
         };
+    }
+
+    async save() {
+        await this.messenger.updateChatState(this.chatState);
     }
 
     async setState(state: MessageStateType): Promise<void> {
@@ -57,7 +102,11 @@ export class Stage extends StageBase<InitStateType, ChatStateType, MessageStateT
 
 
     render(): ReactElement {
-        return <MusicStudio onGenerate={(inputParameters) => this.generateMusic(inputParameters)} />;
+        return <MusicStudio
+            onGenerate={(inputParameters) => this.generateMusic(inputParameters)}
+            trackHistory={this.chatState.trackHistory}
+            onTrackGenerated={(trackEntry) => this.addTrackToHistory(trackEntry)}
+        />;
     }
 
 }

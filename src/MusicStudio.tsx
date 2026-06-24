@@ -43,11 +43,11 @@ type TrackEntry = {
 
 type MusicStudioProps = {
 	onGenerate: (inputParameters: MusicInputParameters) => Promise<string>;
+	trackHistory: TrackEntry[];
+	onTrackGenerated: (trackEntry: TrackEntry) => Promise<void>;
 };
 
-const HISTORY_STORAGE_KEY = "music-studio-history";
-
-export function MusicStudio({onGenerate}: MusicStudioProps) {
+export function MusicStudio({onGenerate, trackHistory, onTrackGenerated}: MusicStudioProps) {
 	const theme = useTheme();
 	const [title, setTitle] = useState("");
 	const [prompt, setPrompt] = useState("");
@@ -61,26 +61,12 @@ export function MusicStudio({onGenerate}: MusicStudioProps) {
 	const [history, setHistory] = useState<TrackEntry[]>([]);
 
 	useEffect(() => {
-		try {
-			const savedHistory = window.localStorage.getItem(HISTORY_STORAGE_KEY);
-			if (savedHistory) {
-				const parsed = JSON.parse(savedHistory) as TrackEntry[];
-				if (Array.isArray(parsed)) {
-					setHistory(parsed.filter((entry) => entry?.title && entry?.url));
-				}
-			}
-		} catch {
-			// Ignore malformed storage.
-		}
-	}, []);
-
-	useEffect(() => {
-		try {
-			window.localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(history.slice(0, 10)));
-		} catch {
-			// Ignore storage failures in constrained environments.
-		}
-	}, [history]);
+		setHistory(
+			Array.isArray(trackHistory)
+				? trackHistory.filter((entry) => entry?.title && entry?.url).slice(0, 10)
+				: [],
+		);
+	}, [trackHistory]);
 
 	const canGenerate = useMemo(() => {
 		return title.trim().length > 0 && !isGenerating;
@@ -130,10 +116,22 @@ export function MusicStudio({onGenerate}: MusicStudioProps) {
 			}
 
 			setTrackUrl(generatedUrl);
+			const newTrackEntry: TrackEntry = {
+				title: inputParameters.title,
+				url: generatedUrl,
+				createdAt: Date.now(),
+			};
+
 			setHistory((currentHistory) => [
-				{title: inputParameters.title, url: generatedUrl, createdAt: Date.now()},
+				newTrackEntry,
 				...currentHistory.filter((entry) => entry.url !== generatedUrl),
 			].slice(0, 10));
+
+			try {
+				await onTrackGenerated(newTrackEntry);
+			} catch {
+				setErrorMessage("Track generated, but failed to save track history.");
+			}
 		} catch (error) {
 			setErrorMessage(error instanceof Error ? error.message : "Track generation failed.");
 		} finally {
