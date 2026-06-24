@@ -2,13 +2,16 @@
 #   in which case these values can be managed in the UI.
 
 # The name of the stage.
-# project_name: "Stage Template"
+project_name: "Media Tester"
 
 # A short tagline to show in search.
-# tagline: "A base template for all stages."
+tagline: "A testbed for exposing some of Chub's multi-media endpoints."
+
+creator_notes: >
+  This is a simple testbed for accessing some of Chub's multi-media endpoints.
 
 # 'PUBLIC', 'PRIVATE', or 'UNLISTED'.
-# visibility: 'PUBLIC'
+visibility: 'PRIVATE'
 
 # 'ADJACENT' | 'NONE' | 'COVER' | 'FULLSCREEN'
 # 'ADJACENT' is default. The frame will display on the side of the
@@ -18,14 +21,14 @@
 #   but leave the text input box.
 # 'FULLSCREEN' will make nothing below the header bar
 #   show except for your stage.
-# position: 'ADJACENT'
+position: 'FULLSCREEN'
 
 # Self-explanatory.
-# tags:
-#  - 'Stage'
-#  - 'Admin'
-#  - 'Template'
-#  - 'Base'
+tags:
+ - 'Stage'
+ - 'Tools'
+ - 'Media'
+ - 'Testbed'
 
 # The schema of any user-supplied config.
 # If your stage requires a configuration but has no
