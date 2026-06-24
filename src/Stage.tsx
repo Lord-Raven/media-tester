@@ -1,6 +1,7 @@
 import {ReactElement} from "react";
 import {StageBase, StageResponse, InitialData, Message} from "@chub-ai/stages-ts";
 import {LoadResponse} from "@chub-ai/stages-ts/dist/types/load";
+import {MusicStudio} from "./MusicStudio";
 
 
 type MessageStateType = any;
@@ -56,14 +57,7 @@ export class Stage extends StageBase<InitStateType, ChatStateType, MessageStateT
 
 
     render(): ReactElement {
-        return <div style={{
-            width: '100vw',
-            height: '100vh',
-            display: 'grid',
-            alignItems: 'stretch'
-        }}>
-
-        </div>;
+        return <MusicStudio onGenerate={(inputParameters) => this.generateMusic(inputParameters)} />;
     }
 
 }
