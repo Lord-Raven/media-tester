@@ -177,6 +177,22 @@ export class Stage extends StageBase<InitStateType, ChatStateType, MessageStateT
     }
      */
     async generateMusic(inputParameters: any): Promise<string> {
+        // Lyric generation is very Chinese. So let's just do a text gen request here instead of relying on lyrics_prompt
+        if (inputParameters.lyrics_prompt) {
+            const lyricsResponse = await this.generator.textGen({
+                prompt: `{{messages}}<LyricGenerationTask>` +
+                        `\n\t<MusicStyle>${inputParameters.prompt}</MusicStyle>` +
+                        `\n\t<LyricPrompt>${inputParameters.lyrics_prompt}</LyricPrompt>` +
+                        `\n\t<Instructions>The System will compose and output lyrics for a song with the provided MusicStyle and LyricPrompt. When complete, output [END].</Instructions>` +
+                        `\n</LyricGenerationTask>`,
+                max_tokens: 500,
+                include_history: true,
+                stop: ['[END]'],
+            });
+            inputParameters.lyrics = lyricsResponse?.result ?? '';
+            inputParameters.lyrics_prompt = null; // Clear lyrics_prompt to avoid confusion
+        }
+
         return (await this.generator.makeMusic(inputParameters))?.url ?? '';
     }
 
@@ -200,15 +216,15 @@ export class Stage extends StageBase<InitStateType, ChatStateType, MessageStateT
     }
     */
    async generateImageFromImage(inputParameters: any): Promise<string> {
-        const imageResponse = await this.generator.imageToImage(inputParameters);
-        if (imageResponse && imageResponse.url && inputParameters.remove_background) {
+        const imageResponseUrl = (inputParameters.prompt ? (await this.generator.imageToImage(inputParameters))?.url : inputParameters.image) ?? '';
+        if (imageResponseUrl && inputParameters.remove_background) {
             // imageToImage doesn't handle background removal, so we need to call removeBackground separately
             const removeBackgroundResponse = await this.generator.removeBackground({
-                image: imageResponse.url
+                image: imageResponseUrl
             });
             return removeBackgroundResponse?.url ?? '';
         }
-        return imageResponse?.url ?? '';
+        return imageResponseUrl;
     }
 
     /* Typical inputParameters structure:
@@ -227,7 +243,7 @@ export class Stage extends StageBase<InitStateType, ChatStateType, MessageStateT
     }
     */
     async generateVideoFromImage(inputParameters: any): Promise<string> {
-        return (await this.generator.animateImage(inputParameters))?.url ?? '';
+        return (await this.generator.animateImage({...inputParameters, cfg_scale: 1}))?.url ?? '';
     }
 
     async generateModel(inputParameters: any): Promise<string> {
