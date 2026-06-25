@@ -18,10 +18,19 @@ type TrackHistoryEntry = {
     createdAt: number;
 };
 
+type CommentHistoryEntry = {
+    context: string;
+    text: string;
+    speechUrl: string;
+};
+
+export type {CommentHistoryEntry};
+
 type ChatStateType = {
     trackHistory: TrackHistoryEntry[];
     imageHistory: ImageHistoryEntry[];
     videoHistory: VideoHistoryEntry[];
+    commentHistory: CommentHistoryEntry[];
 };
 
 export class Stage extends StageBase<InitStateType, ChatStateType, MessageStateType, ConfigType> {
@@ -38,7 +47,26 @@ export class Stage extends StageBase<InitStateType, ChatStateType, MessageStateT
             trackHistory: this.normalizeTrackHistory(data.chatState?.trackHistory),
             imageHistory: this.normalizeImageHistory(data.chatState?.imageHistory),
             videoHistory: this.normalizeVideoHistory(data.chatState?.videoHistory),
+            commentHistory: this.normalizeCommentHistory(data.chatState?.commentHistory),
         };
+    }
+
+    private normalizeCommentHistory(history: unknown): CommentHistoryEntry[] {
+        if (!Array.isArray(history)) {
+            return [];
+        }
+
+        return history
+            .filter((entry): entry is Partial<CommentHistoryEntry> => typeof entry === "object" && entry != null)
+            .map((entry) => {
+                const context = typeof entry.context === "string" ? entry.context.trim() : "";
+                const text = typeof entry.text === "string" ? entry.text.trim() : "";
+                const speechUrl = typeof entry.speechUrl === "string" ? entry.speechUrl.trim() : "";
+
+                return {context: context, text, speechUrl};
+            })
+            .filter((entry) => entry.context.length > 0 && entry.text.length > 0 && entry.speechUrl.length > 0)
+            .slice(0, 20);
     }
 
     private normalizeTrackHistory(history: unknown): TrackHistoryEntry[] {
@@ -97,6 +125,17 @@ export class Stage extends StageBase<InitStateType, ChatStateType, MessageStateT
             })
             .filter((entry) => entry.url.length > 0)
             .slice(0, 12);
+    }
+    
+    private async addCommentToHistory(commentEntry: CommentHistoryEntry): Promise<void> {
+        const updatedHistory = [
+            commentEntry,
+            ...this.chatState.commentHistory.filter((entry) => entry.context !== commentEntry.context),
+        ].slice(0, 20);
+
+        this.chatState.commentHistory = updatedHistory;
+        this.pushMessage(`Added comment to history: ${commentEntry.context} (${commentEntry.text})`);
+        await this.save();
     }
 
     private async addTrackToHistory(trackEntry: TrackHistoryEntry): Promise<void> {
@@ -181,6 +220,38 @@ export class Stage extends StageBase<InitStateType, ChatStateType, MessageStateT
         });
     }
 
+    async generateWitchDialogue(context: string): Promise<{text: string, speechUrl: string}> {
+        const dialogue = await this.generateText({
+            prompt: `<WitchDialogueTask>` +
+                `\n\t<Premise>The Witch is a character in a media creation application. The user creates content using generative tools, and the Witch generally comments upon what the user is up to.</Premise>` +
+                `\n\t<Personality>The Witch is a sassy, fun-loving brewmaster who enjoys teasing and joking about what the user is creating. ` +
+                    `She has a rival: 'the Wizard'. The Wizard is known for creating content for supplicants, but he is a know-it-all buzzkill who frequently gets it wrong. ` +
+                    `The Witch, on the other hand, loves lending the user her tools and letting them create directly as they see fit, content to sit back and banter while the user works. ` +
+                    `The Witch is a bombshell with dark robes, loads of pale cleavage, and an oversized pointy hat. She has dark red hair and violet eyes with a mischievous smile. ` +
+                    `</Personality>` +
+                `\n\t<CommentHistory>${this.chatState.commentHistory.map(entry => `<Comment><Prompt>${entry.context}</Prompt><Response>${entry.text}</Response></Comment>`).join('')}</CommentHistory>` +
+                `\n\t<Context>${context}</Context>` +
+                `\n\t<Instructions>The System will generate a short dialogue response from the Witch character based on the provided Context. When complete, output [END].</Instructions>` +
+                `\n\t<ExampleResponse>Oooh, I see what you're brewing up! Let's add a pinch of magic and a dash of mischief. [END]</ExampleResponse>` +
+                `\n</WitchDialogueTask>`});
+        
+        const result = {text: dialogue, speechUrl: await this.generateSpeech({transcript: dialogue, voice_id: '98bcf0b0-a0f7-4828-8686-4f8692293d68'})}
+        void this.addCommentToHistory({context: context, text: result.text, speechUrl: result.speechUrl});
+        return result;
+    }
+
+    async generateText(inputParameters: any): Promise<string> {
+        // If inputParameters.prompt does not start with "{{messages}}", prepend it to the prompt so that the system can include the conversation history in the request
+        if (typeof inputParameters.prompt === "string" && !inputParameters.prompt.startsWith("{{messages}}")) {
+            inputParameters.prompt = `{{messages}}${inputParameters.prompt}`;
+        }
+        return (await this.generator.textGen({max_tokens: 400, include_history: true, stop: ['[END]'], ...inputParameters}))?.result ?? '';
+    }
+
+    async generateSpeech(inputParameters: any): Promise<string> {
+        return (await this.generator.speak(inputParameters))?.url ?? '';
+    }
+
     /* Typical inputParameters structure:
     {
         title: '', // Title from title input
@@ -194,25 +265,26 @@ export class Stage extends StageBase<InitStateType, ChatStateType, MessageStateT
     async generateMusic(inputParameters: any): Promise<string> {
         // Lyric generation is very Chinese. So let's just do a text gen request here instead of relying on lyrics_prompt
         if (inputParameters.lyrics_prompt) {
-            const lyricsResponse = await this.generator.textGen({
-                prompt: `{{messages}}<LyricGenerationTask>` +
+            let lyricsResponse = await this.generateText({
+                prompt: `<LyricGenerationTask>` +
                         `\n\t<MusicStyle>${inputParameters.prompt}</MusicStyle>` +
                         `\n\t<LyricPrompt>${inputParameters.lyrics_prompt}</LyricPrompt>` +
                         `\n\t<Instructions>The System will compose and output lyrics for a song with the provided MusicStyle and LyricPrompt. When complete, output [END].</Instructions>` +
                         `\n</LyricGenerationTask>`,
-                max_tokens: 1000,
-                include_history: true,
-                stop: ['[END]'],
+                max_tokens: 1200
             });
-            inputParameters.lyrics = lyricsResponse?.result ?? '';
             // Strip prefixes like "Lyrics: " or "Here are the lyrics: " from the generated lyrics by searching for "lyrics:" and taking everything after it
-            const lyricsLower = inputParameters.lyrics.toLowerCase();
+            const lyricsLower = lyricsResponse.toLowerCase();
             const lyricsIndex = lyricsLower.indexOf('lyrics:');
             if (lyricsIndex !== -1) {
-                inputParameters.lyrics = inputParameters.lyrics.substring(lyricsIndex + 'lyrics:'.length).trim();
+                lyricsResponse = lyricsResponse.substring(lyricsIndex + 'lyrics:'.length).trim();
             }
+            inputParameters.lyrics = lyricsResponse;
             inputParameters.lyrics_prompt = null; // Clear lyrics_prompt to avoid confusion
         }
+
+        // Kick off a Witch comment:
+        void this.generateWitchDialogue(`The user is creating a song with the following parameters: Title: ${inputParameters.title}, Style: ${inputParameters.prompt}, Lyrics: ${inputParameters.lyrics ?? 'None'}, Instrumental Only: ${inputParameters.instrumental ? 'Yes' : 'No'}, Tags: ${inputParameters.tags.join(', ')}`);
 
         return (await this.generator.makeMusic(inputParameters))?.url ?? '';
     }
@@ -225,6 +297,9 @@ export class Stage extends StageBase<InitStateType, ChatStateType, MessageStateT
     }
     */
     async generateImage(inputParameters: any): Promise<string> {
+        // Kick off a Witch comment:
+        void this.generateWitchDialogue(`The user is creating an image with the following parameters: Aspect Ratio: ${inputParameters.aspect_ratio}, Style: ${inputParameters.prompt}, Remove Background: ${inputParameters.remove_background ? 'Yes' : 'No'}`);
+        
         return (await this.generator.makeImage(inputParameters))?.url ?? '';
     }
 
@@ -237,6 +312,9 @@ export class Stage extends StageBase<InitStateType, ChatStateType, MessageStateT
     }
     */
    async generateImageFromImage(inputParameters: any): Promise<string> {
+        // Kick off a Witch comment:
+        void this.generateWitchDialogue(`The user is creating an image from an existing image with the following parameters: Base Image URL: ${inputParameters.image}, Style: ${inputParameters.prompt}, Remove Background: ${inputParameters.remove_background ? 'Yes' : 'No'}, Transfer Type: ${inputParameters.transfer_type}`);
+        
         const imageResponseUrl = (inputParameters.prompt ? (await this.generator.imageToImage(inputParameters))?.url : inputParameters.image) ?? '';
         if (imageResponseUrl && inputParameters.remove_background) {
             // imageToImage doesn't handle background removal, so we need to call removeBackground separately
@@ -255,6 +333,9 @@ export class Stage extends StageBase<InitStateType, ChatStateType, MessageStateT
     }
     */
     async generateVideo(inputParameters: any): Promise<string> {
+        // Kick off a Witch comment:
+        void this.generateWitchDialogue(`The user is creating a video with the following parameters: Prompt: ${inputParameters.prompt}, Length: ${inputParameters.seconds} seconds`);
+
         return (await this.generator.makeVideo(inputParameters))?.url ?? '';
     }
 
@@ -264,6 +345,9 @@ export class Stage extends StageBase<InitStateType, ChatStateType, MessageStateT
     }
     */
     async generateVideoFromImage(inputParameters: any): Promise<string> {
+        // Kick off a Witch comment:
+        void this.generateWitchDialogue(`The user is creating a video from an existing image with the following parameters: Base Image URL: ${inputParameters.image}`);
+        
         return (await this.generator.animateImage({...inputParameters, cfg_scale: 1}))?.url ?? '';
     }
 
@@ -288,6 +372,7 @@ export class Stage extends StageBase<InitStateType, ChatStateType, MessageStateT
             videoHistory={this.chatState.videoHistory}
             onVideoGenerated={(videoEntry) => this.addVideoToHistory(videoEntry)}
             onVideoDeleted={(url) => this.removeVideoFromHistory(url)}
+            commentHistory={this.chatState.commentHistory}
         />;
     }
 

@@ -7,6 +7,7 @@ import {alpha, createTheme, ThemeProvider} from "@mui/material/styles";
 import {MusicStudio} from "./MusicStudio";
 import {ArtStudio, ImageHistoryEntry} from "./ArtStudio";
 import {VideoHistoryEntry, VideoStudio} from "./VideoStudio";
+import {CommentHistoryEntry} from "./Stage";
 import WitchCompanion, {WitchSpeechItem} from "./WitchCompanion";
 
 type MusicInputParameters = {
@@ -64,6 +65,7 @@ type StudioWorkspaceProps = {
 	videoHistory: VideoHistoryEntry[];
 	onVideoGenerated: (entry: VideoHistoryEntry) => Promise<void>;
 	onVideoDeleted: (url: string) => Promise<void>;
+	commentHistory: CommentHistoryEntry[];
 };
 
 export function StudioWorkspace({
@@ -81,9 +83,11 @@ export function StudioWorkspace({
 	videoHistory,
 	onVideoGenerated,
 	onVideoDeleted,
+	commentHistory,
 }: StudioWorkspaceProps) {
 	const [tab, setTab] = useState<"music" | "art" | "video">("music");
 	const [witchSpeechItem, setWitchSpeechItem] = useState<WitchSpeechItem | null>(null);
+	const [latestCommentKey, setLatestCommentKey] = useState<string | null>(null);
 
 	const theme = useMemo(
 		() =>
@@ -115,6 +119,27 @@ export function StudioWorkspace({
 						: "Frame the moment. Motion loves strong visual anchors.",
 		});
 	}, [tab]);
+
+	useEffect(() => {
+		const latestComment = commentHistory[0];
+		if (!latestComment) {
+			return;
+		}
+
+		const commentKey = `${latestComment.context}|${latestComment.text}|${latestComment.speechUrl}`;
+
+		if (latestCommentKey == null) {
+			setLatestCommentKey(commentKey);
+			return;
+		}
+
+		if (latestCommentKey === commentKey) {
+			return;
+		}
+
+		setLatestCommentKey(commentKey);
+		setWitchSpeechItem({text: latestComment.text, speechUrl: latestComment.speechUrl});
+	}, [commentHistory, latestCommentKey]);
 
 	return (
 		<ThemeProvider theme={theme}>
