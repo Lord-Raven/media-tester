@@ -2,7 +2,7 @@
 #   in which case these values can be managed in the UI.
 
 # The name of the stage.
-project_name: "The Witch's Cauldron"
+project_name: "Media Tester"
 
 # A short tagline to show in search.
 tagline: "A testbed for exposing some of Chub's multi-media endpoints."
