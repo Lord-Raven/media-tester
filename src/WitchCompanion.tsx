@@ -5,6 +5,7 @@ import {alpha} from "@mui/material/styles";
 import ActorImage, { IDLE_HEIGHT } from "./ActorImage";
 
 export type WitchSpeechItem = {
+	id?: string;
 	text: string;
 	speechUrl?: string;
 };
@@ -25,7 +26,14 @@ type WitchCompanionProps = {
 };
 
 const DEFAULT_WITCH_IMAGE = `https://media.charhub.io/d304e613-f5e9-41ab-8440-241b62826e82/d915b1dc-faa7-4216-8ef3-e70c65354542.png`;
-const DIALOGUE_HOLD_MS = 15000;
+const MIN_DIALOGUE_HOLD_MS = 15000;
+const IDLE_DIALOGUE_HOLD_MS = 60000;
+
+type QueueSpeechItem = {
+	id: string;
+	text: string;
+	speechUrl?: string;
+};
 
 const WitchCompanion = forwardRef<WitchCompanionHandle, WitchCompanionProps>(function WitchCompanion(
 	{
@@ -42,13 +50,16 @@ const WitchCompanion = forwardRef<WitchCompanionHandle, WitchCompanionProps>(fun
 	const [currentSpeechText, setCurrentSpeechText] = useState<string>(defaultIdleText);
 	const [audioAnalyser, setAudioAnalyser] = useState<AnalyserNode | null>(null);
 
-	const queueRef = useRef<WitchSpeechItem[]>([]);
+	const queueRef = useRef<QueueSpeechItem[]>([]);
 	const isProcessingRef = useRef(false);
 	const audioContextRef = useRef<AudioContext | null>(null);
 	const activeAudioRef = useRef<HTMLAudioElement | null>(null);
 	const activeSourceRef = useRef<MediaElementAudioSourceNode | null>(null);
 	const activeAnalyserRef = useRef<AnalyserNode | null>(null);
 	const textOnlyTimeoutRef = useRef<number | null>(null);
+	const currentSpeechRef = useRef<QueueSpeechItem | null>(null);
+	const currentSpeechStartedAtRef = useRef<number>(0);
+	const currentSpeechHoldUntilRef = useRef<number>(0);
 
 	const characterImageResolver = useMemo(() => {
 		return resolveImageUrl ?? (() => DEFAULT_WITCH_IMAGE);
@@ -77,27 +88,41 @@ const WitchCompanion = forwardRef<WitchCompanionHandle, WitchCompanionProps>(fun
 		setIsAudioPlaying(false);
 	}, []);
 
+	const normalizeSpeechItem = useCallback((speechItem: WitchSpeechItem): QueueSpeechItem | null => {
+		const text = speechItem.text?.trim();
+		if (!text) {
+			return null;
+		}
+
+		return {
+			id: speechItem.id?.trim() || text,
+			text,
+			speechUrl: speechItem.speechUrl?.trim() || undefined,
+		};
+	}, []);
+
+	const scheduleNextSpeech = useCallback((targetHoldMs: number, processQueue: () => Promise<void>) => {
+		const holdUntil = currentSpeechStartedAtRef.current + targetHoldMs;
+		currentSpeechHoldUntilRef.current = holdUntil;
+		const delayMs = Math.max(holdUntil - Date.now(), 0);
+
+		textOnlyTimeoutRef.current = window.setTimeout(() => {
+			isProcessingRef.current = false;
+			void processQueue();
+		}, delayMs);
+	}, []);
+
 	const processQueue = useCallback(async () => {
 		if (isProcessingRef.current) {
 			return;
 		}
 
-		const queueNextSpeech = (delayMs = 0) => {
-			if (delayMs > 0) {
-				textOnlyTimeoutRef.current = window.setTimeout(() => {
-					isProcessingRef.current = false;
-					void processQueue();
-				}, delayMs);
-				return;
-			}
-
-			isProcessingRef.current = false;
-			void processQueue();
-		};
-
 		const nextSpeech = queueRef.current.shift();
 		if (!nextSpeech) {
 			isProcessingRef.current = false;
+			currentSpeechRef.current = null;
+			currentSpeechStartedAtRef.current = 0;
+			currentSpeechHoldUntilRef.current = 0;
 			setCurrentSpeechText(defaultIdleText);
 			setIsAudioPlaying(false);
 			setAudioAnalyser(null);
@@ -105,12 +130,15 @@ const WitchCompanion = forwardRef<WitchCompanionHandle, WitchCompanionProps>(fun
 		}
 
 		isProcessingRef.current = true;
+		currentSpeechRef.current = nextSpeech;
+		currentSpeechStartedAtRef.current = Date.now();
+		currentSpeechHoldUntilRef.current = 0;
 		setCurrentSpeechText(nextSpeech.text);
 
 		if (!nextSpeech.speechUrl) {
 			setIsAudioPlaying(false);
 			setAudioAnalyser(null);
-			queueNextSpeech(DIALOGUE_HOLD_MS);
+			scheduleNextSpeech(queueRef.current.length === 0 ? IDLE_DIALOGUE_HOLD_MS : MIN_DIALOGUE_HOLD_MS, processQueue);
 			return;
 		}
 
@@ -143,52 +171,94 @@ const WitchCompanion = forwardRef<WitchCompanionHandle, WitchCompanionProps>(fun
 
 			audio.onended = () => {
 				tearDownActivePlayback();
-				queueNextSpeech(queueRef.current.length === 0 ? DIALOGUE_HOLD_MS : 0);
+				scheduleNextSpeech(queueRef.current.length === 0 ? IDLE_DIALOGUE_HOLD_MS : MIN_DIALOGUE_HOLD_MS, processQueue);
 			};
 
 			audio.onerror = () => {
 				tearDownActivePlayback();
-				queueNextSpeech(queueRef.current.length === 0 ? DIALOGUE_HOLD_MS : 0);
+				scheduleNextSpeech(queueRef.current.length === 0 ? IDLE_DIALOGUE_HOLD_MS : MIN_DIALOGUE_HOLD_MS, processQueue);
 			};
 
 			await audio.play();
 		} catch {
 			tearDownActivePlayback();
-			queueNextSpeech(queueRef.current.length === 0 ? DIALOGUE_HOLD_MS : 0);
+			scheduleNextSpeech(queueRef.current.length === 0 ? IDLE_DIALOGUE_HOLD_MS : MIN_DIALOGUE_HOLD_MS, processQueue);
 		}
-	}, [defaultIdleText, tearDownActivePlayback]);
+	}, [defaultIdleText, scheduleNextSpeech, tearDownActivePlayback]);
 
 	const enqueueSpeech = useCallback((speechItem: WitchSpeechItem) => {
-		if (!speechItem.text?.trim()) {
+		const normalizedItem = normalizeSpeechItem(speechItem);
+		if (!normalizedItem) {
 			return;
 		}
 
-		queueRef.current.push({
-			text: speechItem.text.trim(),
-			speechUrl: speechItem.speechUrl?.trim() || undefined,
-		});
+		if (normalizedItem.speechUrl) {
+			const currentSpeech = currentSpeechRef.current;
+			if (currentSpeech && currentSpeech.id === normalizedItem.id && !currentSpeech.speechUrl) {
+				currentSpeech.speechUrl = normalizedItem.speechUrl;
 
-		void processQueue();
-	}, [processQueue]);
+				if (!activeAudioRef.current) {
+					if (textOnlyTimeoutRef.current != null) {
+						window.clearTimeout(textOnlyTimeoutRef.current);
+						textOnlyTimeoutRef.current = null;
+					}
+					isProcessingRef.current = false;
+					queueRef.current.unshift(currentSpeech);
+					currentSpeechRef.current = null;
+					void processQueue();
+				}
 
-	const enqueueSpeechBatch = useCallback((speechItems: WitchSpeechItem[]) => {
-		for (const item of speechItems) {
-			if (!item.text?.trim()) {
-				continue;
+				return;
 			}
 
-			queueRef.current.push({
-				text: item.text.trim(),
-				speechUrl: item.speechUrl?.trim() || undefined,
-			});
+			const queuedSpeech = queueRef.current.find((item) => item.id === normalizedItem.id && !item.speechUrl);
+			if (queuedSpeech) {
+				queuedSpeech.speechUrl = normalizedItem.speechUrl;
+				return;
+			}
+		}
+
+		queueRef.current.push(normalizedItem);
+
+		if (
+			currentSpeechHoldUntilRef.current > 0
+			&& currentSpeechStartedAtRef.current > 0
+			&& !activeAudioRef.current
+			&& currentSpeechHoldUntilRef.current > currentSpeechStartedAtRef.current + MIN_DIALOGUE_HOLD_MS
+		) {
+			const minHoldUntil = currentSpeechStartedAtRef.current + MIN_DIALOGUE_HOLD_MS;
+			currentSpeechHoldUntilRef.current = minHoldUntil;
+			if (textOnlyTimeoutRef.current != null) {
+				window.clearTimeout(textOnlyTimeoutRef.current);
+				textOnlyTimeoutRef.current = window.setTimeout(() => {
+					isProcessingRef.current = false;
+					void processQueue();
+				}, Math.max(minHoldUntil - Date.now(), 0));
+			}
 		}
 
 		void processQueue();
-	}, [processQueue]);
+	}, [normalizeSpeechItem, processQueue]);
+
+	const enqueueSpeechBatch = useCallback((speechItems: WitchSpeechItem[]) => {
+		for (const item of speechItems) {
+			const normalizedItem = normalizeSpeechItem(item);
+			if (!normalizedItem) {
+				continue;
+			}
+
+			queueRef.current.push(normalizedItem);
+		}
+
+		void processQueue();
+	}, [normalizeSpeechItem, processQueue]);
 
 	const clearSpeechQueue = useCallback(() => {
 		queueRef.current = [];
 		isProcessingRef.current = false;
+		currentSpeechRef.current = null;
+		currentSpeechStartedAtRef.current = 0;
+		currentSpeechHoldUntilRef.current = 0;
 		tearDownActivePlayback();
 		setCurrentSpeechText(defaultIdleText);
 	}, [defaultIdleText, tearDownActivePlayback]);

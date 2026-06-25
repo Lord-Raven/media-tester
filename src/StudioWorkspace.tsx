@@ -126,6 +126,7 @@ export function StudioWorkspace({
 			return;
 		}
 
+		const speechItemId = `${latestComment.context}|${latestComment.text}`;
 		const commentKey = `${latestComment.context}|${latestComment.text}|${latestComment.speechUrl}`;
 
 		if (latestCommentKey == null) {
@@ -138,7 +139,7 @@ export function StudioWorkspace({
 		}
 
 		setLatestCommentKey(commentKey);
-		setWitchSpeechItem({text: latestComment.text, speechUrl: latestComment.speechUrl});
+		setWitchSpeechItem({id: speechItemId, text: latestComment.text, speechUrl: latestComment.speechUrl});
 	}, [commentHistory, latestCommentKey]);
 
 	return (

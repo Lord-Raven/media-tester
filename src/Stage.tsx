@@ -251,13 +251,14 @@ export class Stage extends StageBase<InitStateType, ChatStateType, MessageStateT
                 }
             }
 
-            let speechUrl = '';
-            try {
-                speechUrl = await this.generateSpeech({transcript: dialogue, voice_id: '98bcf0b0-a0f7-4828-8686-4f8692293d68'});
-            } catch (error) {
+            const result = {context: context, text: dialogue, speechUrl: ''};
+            // Asynchronous population of the speech URL.
+            this.generateSpeech({transcript: dialogue, voice_id: '98bcf0b0-a0f7-4828-8686-4f8692293d68'}).then((speechUrl) => {
+                result.speechUrl = speechUrl;
+            }).catch((error) => {
                 console.error('Error generating speech for Witch dialogue:', error);
-            }
-            const result = {context: context, text: dialogue, speechUrl: speechUrl};
+            });
+            
             void this.addCommentToHistory(result);
             return result;
         }
