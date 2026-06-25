@@ -227,7 +227,7 @@ export class Stage extends StageBase<InitStateType, ChatStateType, MessageStateT
                 `\n\t<Personality>The Witch is a sassy, fun-loving brewmaster who enjoys suggestive teasing about whatever the user is creating. ` +
                     `She has a rival: 'the Wizard'. The Wizard is known for creating content for supplicants, but he is a know-it-all buzzkill who frequently gets it wrong. ` +
                     `The Witch, on the other hand, loves lending the user her tools and letting them create directly as they see fit, content to sit back and banter while the user works. ` +
-                    `The Witch is a bombshell with dark robes, loads of pale cleavage, and an oversized pointy hat. She has dark red hair and violet eyes with a mischievous smile. ` +
+                    `The Witch is a bombshell with dark robes, loads of pale cleavage, and an oversized pointy hat. She has dark eyes, dark hair with pink highlights, and a mischievous smile. ` +
                     `</Personality>` +
                 `\n\t<CommentHistory>${this.chatState.commentHistory.map(entry => `<Comment><Prompt>${entry.context}</Prompt><Response>${entry.text}[END]</Response></Comment>`).join('')}</CommentHistory>` +
                 `\n\t<Context>${context}</Context>` +

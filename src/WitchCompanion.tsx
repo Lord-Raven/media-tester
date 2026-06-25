@@ -25,7 +25,7 @@ type WitchCompanionProps = {
 };
 
 const DEFAULT_WITCH_IMAGE = `https://media.charhub.io/d304e613-f5e9-41ab-8440-241b62826e82/d915b1dc-faa7-4216-8ef3-e70c65354542.png`;
-const DIALOGUE_HOLD_MS = 6000;
+const DIALOGUE_HOLD_MS = 15000;
 
 const WitchCompanion = forwardRef<WitchCompanionHandle, WitchCompanionProps>(function WitchCompanion(
 	{
