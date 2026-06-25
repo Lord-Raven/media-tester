@@ -233,7 +233,7 @@ export class Stage extends StageBase<InitStateType, ChatStateType, MessageStateT
         image: '' // Image URL for base image
         prompt: '', // Style prompt from style blank
         remove_background: false, // True if remove background checkbox is toggled, false otherwise
-        transfer_type: 'edit'|'canny'|'default' // Transfer type from transfer type dropdown
+        transfer_type: 'edit'|'canny'|'face' // Transfer type from transfer type dropdown
     }
     */
    async generateImageFromImage(inputParameters: any): Promise<string> {

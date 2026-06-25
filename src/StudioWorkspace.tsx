@@ -24,7 +24,7 @@ type TrackEntry = {
 };
 
 type AspectRatio = "1:1" | "16:9" | "9:16" | "21:9" | "9:21" | "2:3" | "3:2" | "4:3" | "3:4";
-type TransferType = "edit" | "canny" | "default";
+type TransferType = "edit" | "canny" | "face";
 
 type ImageInputParameters = {
 	aspect_ratio: AspectRatio;

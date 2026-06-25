@@ -18,9 +18,7 @@ import {
 	Typography,
 } from "@mui/material";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
-import ContentCopyRoundedIcon from "@mui/icons-material/ContentCopyRounded";
 import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
-import OpenInNewRoundedIcon from "@mui/icons-material/OpenInNewRounded";
 import MusicNoteRoundedIcon from "@mui/icons-material/MusicNoteRounded";
 import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
 import AutoAwesomeRoundedIcon from "@mui/icons-material/AutoAwesomeRounded";
@@ -88,16 +86,7 @@ export function MusicStudio({onGenerate, trackHistory, onTrackGenerated, onTrack
 								},
 								"&.Mui-focused .MuiOutlinedInput-notchedOutline": {
 									borderColor: "#5ea8ff",
-								},    pushMessage(message: string) {
-        //if (this.isAuthenticated) {
-            this.messenger.impersonate({
-                speaker_id: this.primaryCharacter.anonymizedId,
-                is_main: false,
-                parent_id: null,
-                message: message
-            });
-        //}
-    }
+								},
 							},
 						},
 					},

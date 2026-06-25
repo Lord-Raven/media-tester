@@ -22,7 +22,6 @@ import {
 	TextField,
 	Typography,
 } from "@mui/material";
-import ContentCopyRoundedIcon from "@mui/icons-material/ContentCopyRounded";
 import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
 import AutoAwesomeRoundedIcon from "@mui/icons-material/AutoAwesomeRounded";
 import BrushRoundedIcon from "@mui/icons-material/BrushRounded";
@@ -31,7 +30,7 @@ import UploadRoundedIcon from "@mui/icons-material/UploadRounded";
 import {alpha, createTheme, ThemeProvider} from "@mui/material/styles";
 
 type AspectRatio = "1:1" | "16:9" | "9:16" | "21:9" | "9:21" | "2:3" | "3:2" | "4:3" | "3:4";
-type TransferType = "edit" | "canny" | "default";
+type TransferType = "edit" | "face" | "canny";
 
 type ImageInputParameters = {
 	aspect_ratio: AspectRatio;
@@ -62,7 +61,7 @@ type ArtStudioProps = {
 };
 
 const aspectRatios: AspectRatio[] = ["1:1", "16:9", "9:16", "21:9", "9:21", "2:3", "3:2", "4:3", "3:4"];
-const transferTypes: TransferType[] = ["default", "edit", "canny"];
+const transferTypes: TransferType[] = ["edit", "face", "canny"];
 
 export function ArtStudio({
 	onGenerateImage,
@@ -121,7 +120,7 @@ export function ArtStudio({
 
 	const [prompt, setPrompt] = useState("");
 	const [aspectRatio, setAspectRatio] = useState<AspectRatio>("1:1");
-	const [transferType, setTransferType] = useState<TransferType>("default");
+	const [transferType, setTransferType] = useState<TransferType>("edit");
 	const [removeBackground, setRemoveBackground] = useState(false);
 	const [isImageToImage, setIsImageToImage] = useState(false);
 	const [isGenerating, setIsGenerating] = useState(false);
