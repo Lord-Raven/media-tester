@@ -99,10 +99,14 @@ export function StudioWorkspace({
 									height: 3,
 								},
 								"& .MuiTab-root": {
+									color: alpha(theme.palette.text.primary, 0.72),
 									fontWeight: 600,
 									letterSpacing: 0.2,
 									minHeight: 52,
 									textTransform: "none",
+								},
+								"& .MuiTab-root.Mui-selected": {
+									color: theme.palette.text.primary,
 								},
 							}}
 						>

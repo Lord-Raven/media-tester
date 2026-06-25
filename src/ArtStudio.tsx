@@ -369,24 +369,6 @@ export function ArtStudio({
 													}
 													label={isImageToImage ? "Image-to-image mode" : "Text-to-image mode"}
 												/>
-												<Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-													<Button href={activeImageUrl} target="_blank" rel="noreferrer" variant="outlined" startIcon={<OpenInNewRoundedIcon />}>
-														Open URL
-													</Button>
-													<Button
-														variant="outlined"
-														startIcon={<ContentCopyRoundedIcon />}
-														onClick={async () => {
-															try {
-																await navigator.clipboard.writeText(activeImageUrl);
-															} catch {
-																// Clipboard failures are non-fatal.
-															}
-														}}
-													>
-														Copy URL
-													</Button>
-												</Stack>
 											</>
 										) : (
 											<Paper
