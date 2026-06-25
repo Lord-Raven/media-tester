@@ -124,6 +124,7 @@ export function ArtStudio({
 	const [errorMessage, setErrorMessage] = useState("");
 	const [history, setHistory] = useState<ImageHistoryEntry[]>([]);
 	const [activeImageUrl, setActiveImageUrl] = useState("");
+	const [pendingDeleteUrl, setPendingDeleteUrl] = useState<string | null>(null);
 
 	useEffect(() => {
 		const nextHistory = Array.isArray(imageHistory)
@@ -148,14 +149,16 @@ export function ArtStudio({
 		return true;
 	}, [activeImageUrl, isGenerating, isImageToImage]);
 
+	function handleRequestDeleteImage(url: string) {
+		setPendingDeleteUrl((current) => (current === url ? null : url));
+	}
+
 	async function handleDeleteImage(url: string) {
-		if (!window.confirm("Remove this image from history?")) {
-			return;
-		}
 		setHistory((current) => current.filter((item) => item.url !== url));
 		if (activeImageUrl === url) {
 			setActiveImageUrl("");
 		}
+		setPendingDeleteUrl(null);
 		try {
 			await onImageDeleted(url);
 		} catch {
@@ -464,9 +467,22 @@ export function ArtStudio({
 																		{entry.prompt || "(No prompt)"}
 																	</Typography>
 																</Box>
-																<IconButton size="small" color="error" onClick={(event) => { event.stopPropagation(); handleDeleteImage(entry.url); }}>
-																	<DeleteOutlineRoundedIcon fontSize="small" />
-																</IconButton>
+																<Stack direction="row" spacing={0.5} onClick={(event) => event.stopPropagation()}>
+																	{pendingDeleteUrl === entry.url ? (
+																		<>
+																			<Button size="small" color="error" variant="contained" onClick={() => handleDeleteImage(entry.url)}>
+																				Delete
+																			</Button>
+																			<Button size="small" variant="text" onClick={() => setPendingDeleteUrl(null)}>
+																				Cancel
+																			</Button>
+																		</>
+																	) : (
+																		<IconButton size="small" color="error" onClick={() => handleRequestDeleteImage(entry.url)}>
+																			<DeleteOutlineRoundedIcon fontSize="small" />
+																		</IconButton>
+																	)}
+																</Stack>
 															</Paper>
 														</motion.div>
 													))}

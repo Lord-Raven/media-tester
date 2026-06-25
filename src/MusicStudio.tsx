@@ -106,6 +106,7 @@ export function MusicStudio({onGenerate, trackHistory, onTrackGenerated, onTrack
 	const [trackUrl, setTrackUrl] = useState("");
 	const [errorMessage, setErrorMessage] = useState("");
 	const [history, setHistory] = useState<TrackEntry[]>([]);
+	const [pendingDeleteUrl, setPendingDeleteUrl] = useState<string | null>(null);
 
 	useEffect(() => {
 		setHistory(
@@ -143,11 +144,13 @@ export function MusicStudio({onGenerate, trackHistory, onTrackGenerated, onTrack
 		setTags((currentTags) => currentTags.filter((tag) => tag !== tagToRemove));
 	}
 
+	function handleRequestDeleteTrack(url: string) {
+		setPendingDeleteUrl((current) => (current === url ? null : url));
+	}
+
 	async function handleDeleteTrack(url: string) {
-		if (!window.confirm("Remove this track from history?")) {
-			return;
-		}
 		setHistory((current) => current.filter((item) => item.url !== url));
+		setPendingDeleteUrl(null);
 		try {
 			await onTrackDeleted(url);
 		} catch {
@@ -532,9 +535,20 @@ export function MusicStudio({onGenerate, trackHistory, onTrackGenerated, onTrack
 														>
 															<PlayArrowRoundedIcon fontSize="small" />
 														</IconButton>
-														<IconButton size="small" color="error" onClick={() => handleDeleteTrack(entry.url)}>
-															<DeleteOutlineRoundedIcon fontSize="small" />
-														</IconButton>
+															{pendingDeleteUrl === entry.url ? (
+																<>
+																	<Button size="small" color="error" variant="contained" onClick={() => handleDeleteTrack(entry.url)}>
+																		Delete
+																	</Button>
+																	<Button size="small" variant="text" onClick={() => setPendingDeleteUrl(null)}>
+																		Cancel
+																	</Button>
+																</>
+															) : (
+																<IconButton size="small" color="error" onClick={() => handleRequestDeleteTrack(entry.url)}>
+																	<DeleteOutlineRoundedIcon fontSize="small" />
+																</IconButton>
+															)}
 													</Stack>
 												</Paper>
 											))}

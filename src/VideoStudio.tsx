@@ -143,6 +143,7 @@ export function VideoStudio({
 	const [videos, setVideos] = useState<VideoHistoryEntry[]>([]);
 	const [images, setImages] = useState<ImageHistoryEntry[]>([]);
 	const [selection, setSelection] = useState<MediaSelection>(null);
+	const [pendingDeleteSelection, setPendingDeleteSelection] = useState<MediaSelection>(null);
 
 	useEffect(() => {
 		const nextVideos = Array.isArray(videoHistory)
@@ -208,10 +209,12 @@ export function VideoStudio({
 		return secondsValue >= MIN_SECONDS && secondsValue <= MAX_SECONDS;
 	}, [isGenerating, isImageToVideo, secondsInput, selectedImageUrl]);
 
+	function handleRequestDeleteEntry(kind: "video" | "image", url: string) {
+		setPendingDeleteSelection((current) => (current?.kind === kind && current.url === url ? null : {kind, url}));
+	}
+
 	async function handleDeleteEntry(kind: "video" | "image", url: string) {
-		if (!window.confirm(`Remove this ${kind} from history?`)) {
-			return;
-		}
+		setPendingDeleteSelection(null);
 		if (kind === "video") {
 			setVideos((current) => current.filter((item) => item.url !== url));
 			try {
@@ -542,9 +545,20 @@ export function VideoStudio({
 																		<IconButton size="small" href={entry.data.url} target="_blank" rel="noreferrer">
 																			<OpenInNewRoundedIcon fontSize="small" />
 																		</IconButton>
-																		<IconButton size="small" color="error" onClick={() => handleDeleteEntry(entry.kind, entry.data.url)}>
-																			<DeleteOutlineRoundedIcon fontSize="small" />
-																		</IconButton>
+																		{pendingDeleteSelection?.kind === entry.kind && pendingDeleteSelection.url === entry.data.url ? (
+																			<>
+																				<Button size="small" color="error" variant="contained" onClick={() => handleDeleteEntry(entry.kind, entry.data.url)}>
+																					Delete
+																				</Button>
+																				<Button size="small" variant="text" onClick={() => setPendingDeleteSelection(null)}>
+																					Cancel
+																				</Button>
+																			</>
+																		) : (
+																			<IconButton size="small" color="error" onClick={() => handleRequestDeleteEntry(entry.kind, entry.data.url)}>
+																				<DeleteOutlineRoundedIcon fontSize="small" />
+																			</IconButton>
+																		)}
 																	</Stack>
 																</Paper>
 															</motion.div>
