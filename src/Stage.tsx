@@ -2,6 +2,7 @@ import {ReactElement} from "react";
 import {StageBase, StageResponse, InitialData, Message} from "@chub-ai/stages-ts";
 import {LoadResponse} from "@chub-ai/stages-ts/dist/types/load";
 import {ImageHistoryEntry} from "./ArtStudio";
+import {VideoHistoryEntry} from "./VideoStudio";
 import {StudioWorkspace} from "./StudioWorkspace";
 
 
@@ -20,6 +21,7 @@ type TrackHistoryEntry = {
 type ChatStateType = {
     trackHistory: TrackHistoryEntry[];
     imageHistory: ImageHistoryEntry[];
+    videoHistory: VideoHistoryEntry[];
 };
 
 export class Stage extends StageBase<InitStateType, ChatStateType, MessageStateType, ConfigType> {
@@ -32,6 +34,7 @@ export class Stage extends StageBase<InitStateType, ChatStateType, MessageStateT
         this.chatState = {
             trackHistory: this.normalizeTrackHistory(data.chatState?.trackHistory),
             imageHistory: this.normalizeImageHistory(data.chatState?.imageHistory),
+            videoHistory: this.normalizeVideoHistory(data.chatState?.videoHistory),
         };
     }
 
@@ -72,6 +75,27 @@ export class Stage extends StageBase<InitStateType, ChatStateType, MessageStateT
             .slice(0, 12);
     }
 
+    private normalizeVideoHistory(history: unknown): VideoHistoryEntry[] {
+        if (!Array.isArray(history)) {
+            return [];
+        }
+
+        return history
+            .filter((entry): entry is Partial<VideoHistoryEntry> => typeof entry === "object" && entry != null)
+            .map((entry) => {
+                const url = typeof entry.url === "string" ? entry.url.trim() : "";
+                const prompt = typeof entry.prompt === "string" ? entry.prompt.trim() : "";
+                const createdAt = typeof entry.createdAt === "number" ? entry.createdAt : Date.now();
+                const seconds = typeof entry.seconds === "number" ? entry.seconds : 8;
+                const mode: VideoHistoryEntry["mode"] = entry.mode === "image-to-video" ? "image-to-video" : "text-to-video";
+                const sourceImageUrl = typeof entry.sourceImageUrl === "string" ? entry.sourceImageUrl.trim() : undefined;
+
+                return {url, prompt, seconds, createdAt, mode, sourceImageUrl};
+            })
+            .filter((entry) => entry.url.length > 0)
+            .slice(0, 12);
+    }
+
     private async addTrackToHistory(trackEntry: TrackHistoryEntry): Promise<void> {
         const updatedHistory = [
             trackEntry,
@@ -89,6 +113,16 @@ export class Stage extends StageBase<InitStateType, ChatStateType, MessageStateT
         ].slice(0, 12);
 
         this.chatState.imageHistory = updatedHistory;
+        await this.save();
+    }
+
+    private async addVideoToHistory(videoEntry: VideoHistoryEntry): Promise<void> {
+        const updatedHistory = [
+            videoEntry,
+            ...this.chatState.videoHistory.filter((entry) => entry.url !== videoEntry.url),
+        ].slice(0, 12);
+
+        this.chatState.videoHistory = updatedHistory;
         await this.save();
     }
 
@@ -162,6 +196,28 @@ export class Stage extends StageBase<InitStateType, ChatStateType, MessageStateT
         return imageResponse?.url ?? '';
     }
 
+    /* Typical inputParameters structure:
+    {
+        prompt: '', // Style prompt from style blank
+        seconds: number // Length of video in seconds from length input
+    }
+    */
+    async generateVideo(inputParameters: any): Promise<string> {
+        return (await this.generator.makeVideo(inputParameters))?.url ?? '';
+    }
+
+    /* Typical inputParameters structure:
+    {
+        image: '' // Image URL for base image
+    }
+    */
+    async generateVideoFromImage(inputParameters: any): Promise<string> {
+        return (await this.generator.animateImage(inputParameters))?.url ?? '';
+    }
+
+    async generateModel(inputParameters: any): Promise<string> {
+        return (await this.generator.modelGen(inputParameters))?.url ?? '';
+    }
 
 
     render(): ReactElement {
@@ -173,6 +229,10 @@ export class Stage extends StageBase<InitStateType, ChatStateType, MessageStateT
             onGenerateImageFromImage={(inputParameters) => this.generateImageFromImage(inputParameters)}
             imageHistory={this.chatState.imageHistory}
             onImageGenerated={(imageEntry) => this.addImageToHistory(imageEntry)}
+            onGenerateVideo={(inputParameters) => this.generateVideo(inputParameters)}
+            onGenerateVideoFromImage={(inputParameters) => this.generateVideoFromImage(inputParameters)}
+            videoHistory={this.chatState.videoHistory}
+            onVideoGenerated={(videoEntry) => this.addVideoToHistory(videoEntry)}
         />;
     }
 

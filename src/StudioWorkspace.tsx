@@ -2,9 +2,11 @@ import {useMemo, useState} from "react";
 import {Box, Tab, Tabs} from "@mui/material";
 import BrushRoundedIcon from "@mui/icons-material/BrushRounded";
 import MusicNoteRoundedIcon from "@mui/icons-material/MusicNoteRounded";
+import MovieRoundedIcon from "@mui/icons-material/MovieRounded";
 import {alpha, createTheme, ThemeProvider} from "@mui/material/styles";
 import {MusicStudio} from "./MusicStudio";
 import {ArtStudio, ImageHistoryEntry} from "./ArtStudio";
+import {VideoHistoryEntry, VideoStudio} from "./VideoStudio";
 
 type MusicInputParameters = {
 	title: string;
@@ -37,6 +39,15 @@ type ImageToImageInputParameters = {
 	transfer_type: TransferType;
 };
 
+type VideoInputParameters = {
+	prompt: string;
+	seconds: number;
+};
+
+type ImageToVideoInputParameters = {
+	image: string;
+};
+
 type StudioWorkspaceProps = {
 	onGenerateMusic: (inputParameters: MusicInputParameters) => Promise<string>;
 	trackHistory: TrackEntry[];
@@ -45,6 +56,10 @@ type StudioWorkspaceProps = {
 	onGenerateImageFromImage: (inputParameters: ImageToImageInputParameters) => Promise<string>;
 	imageHistory: ImageHistoryEntry[];
 	onImageGenerated: (entry: ImageHistoryEntry) => Promise<void>;
+	onGenerateVideo: (inputParameters: VideoInputParameters) => Promise<string>;
+	onGenerateVideoFromImage: (inputParameters: ImageToVideoInputParameters) => Promise<string>;
+	videoHistory: VideoHistoryEntry[];
+	onVideoGenerated: (entry: VideoHistoryEntry) => Promise<void>;
 };
 
 export function StudioWorkspace({
@@ -55,8 +70,12 @@ export function StudioWorkspace({
 	onGenerateImageFromImage,
 	imageHistory,
 	onImageGenerated,
+	onGenerateVideo,
+	onGenerateVideoFromImage,
+	videoHistory,
+	onVideoGenerated,
 }: StudioWorkspaceProps) {
-	const [tab, setTab] = useState<"music" | "art">("music");
+	const [tab, setTab] = useState<"music" | "art" | "video">("music");
 
 	const theme = useMemo(
 		() =>
@@ -89,7 +108,7 @@ export function StudioWorkspace({
 				<Box sx={{maxWidth: 1200, mx: "auto", px: {xs: 2, md: 4}}}>
 						<Tabs
 							value={tab}
-							onChange={(_event, value: "music" | "art") => setTab(value)}
+							onChange={(_event, value: "music" | "art" | "video") => setTab(value)}
 							variant="fullWidth"
 							textColor="inherit"
 							indicatorColor="primary"
@@ -112,6 +131,7 @@ export function StudioWorkspace({
 						>
 							<Tab icon={<MusicNoteRoundedIcon fontSize="small" />} iconPosition="start" label="Music Studio" value="music" />
 							<Tab icon={<BrushRoundedIcon fontSize="small" />} iconPosition="start" label="Art Studio" value="art" />
+							<Tab icon={<MovieRoundedIcon fontSize="small" />} iconPosition="start" label="Video Studio" value="video" />
 						</Tabs>
 				</Box>
 			</Box>
@@ -119,12 +139,20 @@ export function StudioWorkspace({
 			<Box>
 				{tab === "music" ? (
 					<MusicStudio onGenerate={onGenerateMusic} trackHistory={trackHistory} onTrackGenerated={onTrackGenerated} />
-				) : (
+				) : tab === "art" ? (
 					<ArtStudio
 						onGenerateImage={onGenerateImage}
 						onGenerateImageFromImage={onGenerateImageFromImage}
 						imageHistory={imageHistory}
 						onImageGenerated={onImageGenerated}
+					/>
+				) : (
+					<VideoStudio
+						onGenerateVideo={onGenerateVideo}
+						onGenerateVideoFromImage={onGenerateVideoFromImage}
+						videoHistory={videoHistory}
+						imageHistory={imageHistory}
+						onVideoGenerated={onVideoGenerated}
 					/>
 				)}
 			</Box>

@@ -2,12 +2,12 @@
 #   in which case these values can be managed in the UI.
 
 # The name of the stage.
-project_name: "Media Tester"
+project_name: "The Witch's Cauldron"
 
 # A short tagline to show in search.
 tagline: "A testbed for exposing some of Chub's multi-media endpoints."
 
-creator_notes: "This is a simple testbed for accessing some of Chub's multi-media endpoints, starting with the music endpoint."
+creator_notes: "This is a simple testbed for accessing some of Chub's multi-media endpoints, starting with the music endpoint. Gonna theme it up later."
 
 # 'PUBLIC', 'PRIVATE', or 'UNLISTED'.
 visibility: 'PUBLIC'
