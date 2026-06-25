@@ -185,11 +185,17 @@ export class Stage extends StageBase<InitStateType, ChatStateType, MessageStateT
                         `\n\t<LyricPrompt>${inputParameters.lyrics_prompt}</LyricPrompt>` +
                         `\n\t<Instructions>The System will compose and output lyrics for a song with the provided MusicStyle and LyricPrompt. When complete, output [END].</Instructions>` +
                         `\n</LyricGenerationTask>`,
-                max_tokens: 500,
+                max_tokens: 1000,
                 include_history: true,
                 stop: ['[END]'],
             });
             inputParameters.lyrics = lyricsResponse?.result ?? '';
+            // Strip prefixes like "Lyrics: " or "Here are the lyrics: " from the generated lyrics by searching for "lyrics:" and taking everything after it
+            const lyricsLower = inputParameters.lyrics.toLowerCase();
+            const lyricsIndex = lyricsLower.indexOf('lyrics:');
+            if (lyricsIndex !== -1) {
+                inputParameters.lyrics = inputParameters.lyrics.substring(lyricsIndex + 'lyrics:'.length).trim();
+            }
             inputParameters.lyrics_prompt = null; // Clear lyrics_prompt to avoid confusion
         }
 
