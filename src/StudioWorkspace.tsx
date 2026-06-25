@@ -15,28 +15,7 @@ type WitchSpeechItem = {
 	speechUrl?: string;
 };
 
-const DEFAULT_WITCH_IMAGE = `data:image/svg+xml,${encodeURIComponent(
-	`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 980">
-		<defs>
-			<linearGradient id="robe" x1="0" y1="0" x2="0" y2="1">
-				<stop offset="0%" stop-color="#cce9ff"/>
-				<stop offset="100%" stop-color="#8db9d6"/>
-			</linearGradient>
-			<linearGradient id="hat" x1="0" y1="0" x2="1" y2="1">
-				<stop offset="0%" stop-color="#e9f7ff"/>
-				<stop offset="100%" stop-color="#99c4dc"/>
-			</linearGradient>
-		</defs>
-		<path d="M70 955L130 520L292 520L350 955Z" fill="url(#robe)" opacity="0.96"/>
-		<path d="M122 520C122 462 159 416 210 416C261 416 298 462 298 520Z" fill="#dbf2ff" opacity="0.9"/>
-		<ellipse cx="210" cy="346" rx="84" ry="98" fill="#eff9ff"/>
-		<path d="M210 94L122 312H298Z" fill="url(#hat)"/>
-		<rect x="128" y="300" width="165" height="24" rx="12" fill="#b9def2"/>
-		<circle cx="176" cy="338" r="8" fill="#7ca4ba"/>
-		<circle cx="244" cy="338" r="8" fill="#7ca4ba"/>
-		<path d="M176 385C195 405 225 405 244 385" stroke="#7ca4ba" stroke-width="8" fill="none" stroke-linecap="round"/>
-	</svg>`,
-)} `;
+const DEFAULT_WITCH_IMAGE = `https://media.charhub.io/d304e613-f5e9-41ab-8440-241b62826e82/d915b1dc-faa7-4216-8ef3-e70c65354542.png`;
 
 type WitchCompanionProps = {
 	incomingSpeechItem?: WitchSpeechItem | null;
