@@ -41,7 +41,7 @@ export class Stage extends StageBase<InitStateType, ChatStateType, MessageStateT
     constructor(data: InitialData<InitStateType, ChatStateType, MessageStateType, ConfigType>) {
         super(data);
 
-        this.primaryCharacter = data.characters ? data.characters[0] : {anonymizedId: "1"} as Character;
+        this.primaryCharacter = Object.values(data.characters || {})[0] || {anonymizedId: "1"} as Character;
 
         this.chatState = {
             trackHistory: this.normalizeTrackHistory(data.chatState?.trackHistory),

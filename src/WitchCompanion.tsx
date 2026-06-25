@@ -25,6 +25,7 @@ type WitchCompanionProps = {
 };
 
 const DEFAULT_WITCH_IMAGE = `https://media.charhub.io/d304e613-f5e9-41ab-8440-241b62826e82/d915b1dc-faa7-4216-8ef3-e70c65354542.png`;
+const DIALOGUE_HOLD_MS = 6000;
 
 const WitchCompanion = forwardRef<WitchCompanionHandle, WitchCompanionProps>(function WitchCompanion(
 	{
@@ -81,6 +82,19 @@ const WitchCompanion = forwardRef<WitchCompanionHandle, WitchCompanionProps>(fun
 			return;
 		}
 
+		const queueNextSpeech = (delayMs = 0) => {
+			if (delayMs > 0) {
+				textOnlyTimeoutRef.current = window.setTimeout(() => {
+					isProcessingRef.current = false;
+					void processQueue();
+				}, delayMs);
+				return;
+			}
+
+			isProcessingRef.current = false;
+			void processQueue();
+		};
+
 		const nextSpeech = queueRef.current.shift();
 		if (!nextSpeech) {
 			isProcessingRef.current = false;
@@ -96,10 +110,7 @@ const WitchCompanion = forwardRef<WitchCompanionHandle, WitchCompanionProps>(fun
 		if (!nextSpeech.speechUrl) {
 			setIsAudioPlaying(false);
 			setAudioAnalyser(null);
-			textOnlyTimeoutRef.current = window.setTimeout(() => {
-				isProcessingRef.current = false;
-				void processQueue();
-			}, 3200);
+			queueNextSpeech(DIALOGUE_HOLD_MS);
 			return;
 		}
 
@@ -132,21 +143,18 @@ const WitchCompanion = forwardRef<WitchCompanionHandle, WitchCompanionProps>(fun
 
 			audio.onended = () => {
 				tearDownActivePlayback();
-				isProcessingRef.current = false;
-				void processQueue();
+				queueNextSpeech(queueRef.current.length === 0 ? DIALOGUE_HOLD_MS : 0);
 			};
 
 			audio.onerror = () => {
 				tearDownActivePlayback();
-				isProcessingRef.current = false;
-				void processQueue();
+				queueNextSpeech(queueRef.current.length === 0 ? DIALOGUE_HOLD_MS : 0);
 			};
 
 			await audio.play();
 		} catch {
 			tearDownActivePlayback();
-			isProcessingRef.current = false;
-			void processQueue();
+			queueNextSpeech(queueRef.current.length === 0 ? DIALOGUE_HOLD_MS : 0);
 		}
 	}, [defaultIdleText, tearDownActivePlayback]);
 
