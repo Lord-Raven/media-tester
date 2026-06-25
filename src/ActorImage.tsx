@@ -1,7 +1,7 @@
 import {motion, Variants, easeOut, easeIn, AnimatePresence, useMotionValue, useSpring} from "framer-motion";
 import {FC, useState, useEffect, useMemo, memo} from "react";
 
-const IDLE_HEIGHT: number = 80;
+export const IDLE_HEIGHT: number = 80;
 
 interface ActorImageProps {
     id: string;
