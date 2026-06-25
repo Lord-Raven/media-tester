@@ -1,7 +1,8 @@
 import {ReactElement} from "react";
 import {StageBase, StageResponse, InitialData, Message} from "@chub-ai/stages-ts";
 import {LoadResponse} from "@chub-ai/stages-ts/dist/types/load";
-import {MusicStudio} from "./MusicStudio";
+import {ImageHistoryEntry} from "./ArtStudio";
+import {StudioWorkspace} from "./StudioWorkspace";
 
 
 type MessageStateType = any;
@@ -18,6 +19,7 @@ type TrackHistoryEntry = {
 
 type ChatStateType = {
     trackHistory: TrackHistoryEntry[];
+    imageHistory: ImageHistoryEntry[];
 };
 
 export class Stage extends StageBase<InitStateType, ChatStateType, MessageStateType, ConfigType> {
@@ -28,11 +30,12 @@ export class Stage extends StageBase<InitStateType, ChatStateType, MessageStateT
         super(data);
 
         this.chatState = {
-            trackHistory: this.normalizeHistory(data.chatState?.trackHistory)
+            trackHistory: this.normalizeTrackHistory(data.chatState?.trackHistory),
+            imageHistory: this.normalizeImageHistory(data.chatState?.imageHistory),
         };
     }
 
-    private normalizeHistory(history: unknown): TrackHistoryEntry[] {
+    private normalizeTrackHistory(history: unknown): TrackHistoryEntry[] {
         if (!Array.isArray(history)) {
             return [];
         }
@@ -50,6 +53,25 @@ export class Stage extends StageBase<InitStateType, ChatStateType, MessageStateT
             .slice(0, 10);
     }
 
+    private normalizeImageHistory(history: unknown): ImageHistoryEntry[] {
+        if (!Array.isArray(history)) {
+            return [];
+        }
+
+        return history
+            .filter((entry): entry is Partial<ImageHistoryEntry> => typeof entry === "object" && entry != null)
+            .map((entry) => {
+                const url = typeof entry.url === "string" ? entry.url.trim() : "";
+                const prompt = typeof entry.prompt === "string" ? entry.prompt.trim() : "";
+                const createdAt = typeof entry.createdAt === "number" ? entry.createdAt : Date.now();
+                const mode: ImageHistoryEntry["mode"] = entry.mode === "image-to-image" ? "image-to-image" : "text-to-image";
+
+                return {url, prompt, createdAt, mode};
+            })
+            .filter((entry) => entry.url.length > 0)
+            .slice(0, 12);
+    }
+
     private async addTrackToHistory(trackEntry: TrackHistoryEntry): Promise<void> {
         const updatedHistory = [
             trackEntry,
@@ -57,6 +79,16 @@ export class Stage extends StageBase<InitStateType, ChatStateType, MessageStateT
         ].slice(0, 10);
 
         this.chatState.trackHistory = updatedHistory;
+        await this.save();
+    }
+
+    private async addImageToHistory(imageEntry: ImageHistoryEntry): Promise<void> {
+        const updatedHistory = [
+            imageEntry,
+            ...this.chatState.imageHistory.filter((entry) => entry.url !== imageEntry.url),
+        ].slice(0, 12);
+
+        this.chatState.imageHistory = updatedHistory;
         await this.save();
     }
 
@@ -85,27 +117,62 @@ export class Stage extends StageBase<InitStateType, ChatStateType, MessageStateT
         return {};
     }
 
-    /*
-    // Typical inputParameters structure:
+    /* Typical inputParameters structure:
     {
-            title: '', // Title from title input
-            prompt: '', // Style prompt from style blank
-            lyrics: null, // Lyrics from lyrics blank, if prompt mode not toggled
-            lyrics_prompt: null, // Style prompt from lyrics blank, if prompt mode toggled
-            instrumental: false, // True if lyrics blank is empty, false if lyrics blank has text
-            tags: [], // Tags from tags input
-        }
+        title: '', // Title from title input
+        prompt: '', // Style prompt from style blank
+        lyrics: null, // Lyrics from lyrics blank, if prompt mode not toggled
+        lyrics_prompt: null, // Style prompt from lyrics blank, if prompt mode toggled
+        instrumental: false, // True if lyrics blank is empty, false if lyrics blank has text
+        tags: [], // Tags from tags input
+    }
      */
     async generateMusic(inputParameters: any): Promise<string> {
         return (await this.generator.makeMusic(inputParameters))?.url ?? '';
     }
 
+    /* Typical inputParameters structure:
+    {
+        aspect_ratio: '1:1'|'16:9'|'9:16'|'21:9'|'9:21'|'2:3'|'3:2'|'4:3'|'3:4', // Aspect ratio from aspect ratio dropdown
+        prompt: '', // Style prompt from style blank
+        remove_background: false, // True if remove background checkbox is toggled, false otherwise
+    }
+    */
+    async generateImage(inputParameters: any): Promise<string> {
+        return (await this.generator.makeImage(inputParameters))?.url ?? '';
+    }
+
+    /* Typical inputParameters structure:
+    {
+        image: '' // Image URL for base image
+        prompt: '', // Style prompt from style blank
+        remove_background: false, // True if remove background checkbox is toggled, false otherwise
+        transfer_type: 'edit'|'canny'|'default' // Transfer type from transfer type dropdown
+    }
+    */
+   async generateImageFromImage(inputParameters: any): Promise<string> {
+        const imageResponse = await this.generator.imageToImage(inputParameters);
+        if (imageResponse && imageResponse.url && inputParameters.remove_background) {
+            // imageToImage doesn't handle background removal, so we need to call removeBackground separately
+            const removeBackgroundResponse = await this.generator.removeBackground({
+                image: imageResponse.url
+            });
+            return removeBackgroundResponse?.url ?? '';
+        }
+        return imageResponse?.url ?? '';
+    }
+
+
 
     render(): ReactElement {
-        return <MusicStudio
-            onGenerate={(inputParameters) => this.generateMusic(inputParameters)}
+        return <StudioWorkspace
+            onGenerateMusic={(inputParameters) => this.generateMusic(inputParameters)}
             trackHistory={this.chatState.trackHistory}
             onTrackGenerated={(trackEntry) => this.addTrackToHistory(trackEntry)}
+            onGenerateImage={(inputParameters) => this.generateImage(inputParameters)}
+            onGenerateImageFromImage={(inputParameters) => this.generateImageFromImage(inputParameters)}
+            imageHistory={this.chatState.imageHistory}
+            onImageGenerated={(imageEntry) => this.addImageToHistory(imageEntry)}
         />;
     }
 
