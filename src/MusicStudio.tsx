@@ -88,7 +88,16 @@ export function MusicStudio({onGenerate, trackHistory, onTrackGenerated, onTrack
 								},
 								"&.Mui-focused .MuiOutlinedInput-notchedOutline": {
 									borderColor: "#5ea8ff",
-								},
+								},    pushMessage(message: string) {
+        //if (this.isAuthenticated) {
+            this.messenger.impersonate({
+                speaker_id: this.primaryCharacter.anonymizedId,
+                is_main: false,
+                parent_id: null,
+                message: message
+            });
+        //}
+    }
 							},
 						},
 					},

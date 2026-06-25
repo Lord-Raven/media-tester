@@ -1,5 +1,5 @@
 import {ReactElement} from "react";
-import {StageBase, StageResponse, InitialData, Message} from "@chub-ai/stages-ts";
+import {StageBase, StageResponse, InitialData, Message, Character} from "@chub-ai/stages-ts";
 import {LoadResponse} from "@chub-ai/stages-ts/dist/types/load";
 import {ImageHistoryEntry} from "./ArtStudio";
 import {VideoHistoryEntry} from "./VideoStudio";
@@ -27,9 +27,12 @@ type ChatStateType = {
 export class Stage extends StageBase<InitStateType, ChatStateType, MessageStateType, ConfigType> {
 
     chatState: ChatStateType;
+    primaryCharacter: Character;
 
     constructor(data: InitialData<InitStateType, ChatStateType, MessageStateType, ConfigType>) {
         super(data);
+
+        this.primaryCharacter = data.characters ? data.characters[0] : {anonymizedId: "1"} as Character;
 
         this.chatState = {
             trackHistory: this.normalizeTrackHistory(data.chatState?.trackHistory),
@@ -103,6 +106,7 @@ export class Stage extends StageBase<InitStateType, ChatStateType, MessageStateT
         ].slice(0, 10);
 
         this.chatState.trackHistory = updatedHistory;
+        this.pushMessage(`Added track to history: ${trackEntry.title} (${trackEntry.url})`);
         await this.save();
     }
 
@@ -113,6 +117,7 @@ export class Stage extends StageBase<InitStateType, ChatStateType, MessageStateT
         ].slice(0, 12);
 
         this.chatState.imageHistory = updatedHistory;
+        this.pushMessage(`Added image to history: ${imageEntry.prompt} (${imageEntry.url})`);
         await this.save();
     }
 
@@ -123,6 +128,7 @@ export class Stage extends StageBase<InitStateType, ChatStateType, MessageStateT
         ].slice(0, 12);
 
         this.chatState.videoHistory = updatedHistory;
+        this.pushMessage(`Added video to history: ${videoEntry.prompt} (${videoEntry.url})`);
         await this.save();
     }
 
@@ -164,6 +170,15 @@ export class Stage extends StageBase<InitStateType, ChatStateType, MessageStateT
     async afterResponse(botMessage: Message): Promise<Partial<StageResponse<ChatStateType, MessageStateType>>> {
 
         return {};
+    }
+
+    pushMessage(message: string) {
+        this.messenger.impersonate({
+            speaker_id: this.primaryCharacter.anonymizedId,
+            is_main: false,
+            parent_id: null,
+            message: message
+        });
     }
 
     /* Typical inputParameters structure:
