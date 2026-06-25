@@ -560,9 +560,6 @@ export function VideoStudio({
 																		</Typography>
 																	</Box>
 																	<Stack direction="row" spacing={0.5} onClick={(event) => event.stopPropagation()}>
-																		<IconButton size="small" href={entry.data.url} target="_blank" rel="noreferrer">
-																			<OpenInNewRoundedIcon fontSize="small" />
-																		</IconButton>
 																		{pendingDeleteSelection?.kind === entry.kind && pendingDeleteSelection.url === entry.data.url ? (
 																			<>
 																				<Button size="small" color="error" variant="contained" onClick={() => handleDeleteEntry(entry.kind, entry.data.url)}>

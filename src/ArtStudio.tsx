@@ -1,4 +1,4 @@
-import {useEffect, useMemo, useState} from "react";
+import {ChangeEvent, useEffect, useMemo, useRef, useState} from "react";
 import {AnimatePresence, motion} from "framer-motion";
 import {
 	Alert,
@@ -24,6 +24,7 @@ import ContentCopyRoundedIcon from "@mui/icons-material/ContentCopyRounded";
 import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
 import AutoAwesomeRoundedIcon from "@mui/icons-material/AutoAwesomeRounded";
 import BrushRoundedIcon from "@mui/icons-material/BrushRounded";
+import UploadRoundedIcon from "@mui/icons-material/UploadRounded";
 import {alpha, createTheme, ThemeProvider} from "@mui/material/styles";
 
 type AspectRatio = "1:1" | "16:9" | "9:16" | "21:9" | "9:21" | "2:3" | "3:2" | "4:3" | "3:4";
@@ -125,6 +126,7 @@ export function ArtStudio({
 	const [history, setHistory] = useState<ImageHistoryEntry[]>([]);
 	const [activeImageUrl, setActiveImageUrl] = useState("");
 	const [pendingDeleteUrl, setPendingDeleteUrl] = useState<string | null>(null);
+	const uploadInputRef = useRef<HTMLInputElement | null>(null);
 
 	useEffect(() => {
 		const nextHistory = Array.isArray(imageHistory)
@@ -211,8 +213,66 @@ export function ArtStudio({
 		}
 	}
 
+	function handleUploadClick() {
+		uploadInputRef.current?.click();
+	}
+
+	function handleUploadImage(event: ChangeEvent<HTMLInputElement>) {
+		const selectedFile = event.target.files?.[0];
+
+		if (!selectedFile) {
+			return;
+		}
+
+		if (!selectedFile.type.startsWith("image/")) {
+			setErrorMessage("Please select a valid image file.");
+			event.target.value = "";
+			return;
+		}
+
+		const reader = new FileReader();
+		reader.onload = async () => {
+			const uploadedImageUrl = typeof reader.result === "string" ? reader.result : "";
+
+			if (!uploadedImageUrl) {
+				setErrorMessage("Failed to read image file.");
+				event.target.value = "";
+				return;
+			}
+
+			setErrorMessage("");
+			setActiveImageUrl(uploadedImageUrl);
+			setIsImageToImage(true);
+
+			const entry: ImageHistoryEntry = {
+				url: uploadedImageUrl,
+				prompt: `Uploaded: ${selectedFile.name}`,
+				createdAt: Date.now(),
+				mode: "image-to-image",
+			};
+
+			setHistory((currentHistory) => [entry, ...currentHistory.filter((item) => item.url !== uploadedImageUrl)].slice(0, 12));
+
+			try {
+				await onImageGenerated(entry);
+			} catch {
+				setErrorMessage("Image uploaded, but failed to save image history.");
+			}
+
+			event.target.value = "";
+		};
+
+		reader.onerror = () => {
+			setErrorMessage("Failed to read image file.");
+			event.target.value = "";
+		};
+
+		reader.readAsDataURL(selectedFile);
+	}
+
 	return (
 		<ThemeProvider theme={theme}>
+			<input ref={uploadInputRef} type="file" accept="image/*" onChange={handleUploadImage} hidden />
 			<Box
 				sx={{
 					minHeight: "100vh",
@@ -379,6 +439,15 @@ export function ArtStudio({
 												>
 													<Box component="img" src={activeImageUrl} alt="Selected image" sx={{display: "block", width: "100%"}} />
 												</Box>
+												<Button
+													variant="outlined"
+													onClick={handleUploadClick}
+													disabled={isGenerating}
+													startIcon={<UploadRoundedIcon />}
+													sx={{alignSelf: "flex-start", borderRadius: 999}}
+												>
+													Upload Image
+												</Button>
 												<FormControlLabel
 													control={
 														<Switch
@@ -404,6 +473,15 @@ export function ArtStudio({
 												<Typography color="text.secondary">
 													Your generated image will appear here.
 												</Typography>
+													<Button
+														variant="outlined"
+														onClick={handleUploadClick}
+														disabled={isGenerating}
+														startIcon={<UploadRoundedIcon />}
+														sx={{mt: 2, borderRadius: 999}}
+													>
+														Upload Image
+													</Button>
 											</Paper>
 										)}
 									</Stack>
