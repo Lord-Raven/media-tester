@@ -221,7 +221,7 @@ export class Stage extends StageBase<InitStateType, ChatStateType, MessageStateT
     }
 
     async generateWitchDialogue(context: string): Promise<CommentHistoryEntry> {
-        const dialogue = await this.generateText({
+        let dialogue = await this.generateText({
             prompt: `<WitchDialogueTask>` +
                 `\n\t<Premise>The Witch is a character in a media creation application. The user creates content using generative tools, and the Witch generally comments upon what the user is up to.</Premise>` +
                 `\n\t<Personality>The Witch is a sassy, fun-loving brewmaster who enjoys suggestive teasing about whatever the user is creating. ` +
@@ -234,22 +234,29 @@ export class Stage extends StageBase<InitStateType, ChatStateType, MessageStateT
                 `\n\t<Instructions>The System will generate a short dialogue comment from the Witch character based on the provided Context. ` +
                     `This is a straight line of speech that will become voiced, so it cannot contain actions or prose. After completing the line, output [END].</Instructions>` +
                 `\n\t<ExampleResponses>` +
-                `\n\t\t<ExampleResponse>Oooh, I see what you're brewing up! Let's add a pinch of magic and a dash of mischief.[END]</ExampleResponse>` +
-                `\n\t\t<ExampleResponse>Ha! The Wizard would never have thought to do it that way. You're a true master of your craft![END]</ExampleResponse>` +
-                `\n\t\t<ExampleResponse>What, pray tell, do you have in mind for _that_?[END]</ExampleResponse>` +
+                `\n\t\t<Response>Oooh, I see what you're brewing up! Let's add a pinch of magic and a dash of mischief.[END]</Response>` +
+                `\n\t\t<Response>Ha! The Wizard would never have thought to do it that way. You're a true master of your craft![END]</Response>` +
+                `\n\t\t<Response>What, pray tell, do you have in mind for _that_?[END]</Response>` +
                 `\n\t</ExampleResponses>` +
                 `\n</WitchDialogueTask>`});
-        
-        let speechUrl = '';
-        try {
-            speechUrl = await this.generateSpeech({transcript: dialogue, voice_id: '98bcf0b0-a0f7-4828-8686-4f8692293d68'});
-        } catch (error) {
-            console.error('Error generating speech for Witch dialogue:', error);
+        if (dialogue) {
+            // If dialogue is in <Response>...</Response> tags, extract the text inside the tags
+            const responseMatch = dialogue.match(/<Response>(.*?)<\/Response>/s);
+            if (responseMatch) {
+                dialogue = responseMatch[1].trim();
+            }
+            let speechUrl = '';
+            try {
+                speechUrl = await this.generateSpeech({transcript: dialogue, voice_id: '98bcf0b0-a0f7-4828-8686-4f8692293d68'});
+            } catch (error) {
+                console.error('Error generating speech for Witch dialogue:', error);
+            }
+            const result = {context: context, text: dialogue, speechUrl: speechUrl};
+            void this.addCommentToHistory(result);
+            return result;
         }
 
-        const result = {context: context, text: dialogue, speechUrl: speechUrl};
-        void this.addCommentToHistory(result);
-        return result;
+        return {context: context, text: '', speechUrl: ''};
     }
 
     async generateText(inputParameters: any): Promise<string> {
