@@ -8,6 +8,8 @@ import {
 	CardContent,
 	Chip,
 	Divider,
+	Dialog,
+	DialogContent,
 	FormControlLabel,
 	IconButton,
 	LinearProgress,
@@ -147,6 +149,7 @@ export function VideoStudio({
 	const [selection, setSelection] = useState<MediaSelection>(null);
 	const [isImageToVideo, setIsImageToVideo] = useState(false);
 	const [pendingDeleteSelection, setPendingDeleteSelection] = useState<MediaSelection>(null);
+	const [isExpandedPreviewOpen, setIsExpandedPreviewOpen] = useState(false);
 
 	useEffect(() => {
 		const nextVideos = Array.isArray(videoHistory)
@@ -175,6 +178,12 @@ export function VideoStudio({
 	const hasSelection = selection != null;
 	const selectedVideoUrl = selection?.kind === "video" ? selection.url : "";
 	const selectedImageUrl = selection?.kind === "image" ? selection.url : "";
+
+	function handleOpenExpandedPreview() {
+		if (hasSelection) {
+			setIsExpandedPreviewOpen(true);
+		}
+	}
 
 	useEffect(() => {
 		if (!selection && combinedHistory.length > 0) {
@@ -412,7 +421,7 @@ export function VideoStudio({
 												Selected Media
 											</Typography>
 											<Typography variant="h5" sx={{fontWeight: 800, mt: 0.5}}>
-												{hasSelection ? "Ready for generation" : "Waiting for media"}
+												{hasSelection ? "Preview" : "Waiting for media"}
 											</Typography>
 										</Box>
 
@@ -420,10 +429,21 @@ export function VideoStudio({
 											<>
 												<Box
 													sx={{
+														position: "relative",
 														borderRadius: 3,
 														overflow: "hidden",
 														border: `1px solid ${alpha(theme.palette.divider, 0.85)}`,
 														background: alpha(theme.palette.common.black, 0.28),
+														cursor: "zoom-in",
+													}}
+													onClick={handleOpenExpandedPreview}
+													role="button"
+													tabIndex={0}
+													onKeyDown={(event) => {
+														if (event.key === "Enter" || event.key === " ") {
+															event.preventDefault();
+															handleOpenExpandedPreview();
+														}
 													}}
 												>
 													<Box
@@ -432,6 +452,12 @@ export function VideoStudio({
 														controls
 														playsInline
 														sx={{display: "block", width: "100%", maxHeight: 360}}
+													/>
+													<Chip
+														size="small"
+														icon={<OpenInNewRoundedIcon />}
+														label="Expand"
+														sx={{position: "absolute", top: 10, right: 10, backdropFilter: "blur(4px)"}}
 													/>
 												</Box>
 												<Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
@@ -443,13 +469,30 @@ export function VideoStudio({
 											<>
 												<Box
 													sx={{
+														position: "relative",
 														borderRadius: 3,
 														overflow: "hidden",
 														border: `1px solid ${alpha(theme.palette.divider, 0.85)}`,
 														background: alpha(theme.palette.common.black, 0.28),
+														cursor: "zoom-in",
+													}}
+													onClick={handleOpenExpandedPreview}
+													role="button"
+													tabIndex={0}
+													onKeyDown={(event) => {
+														if (event.key === "Enter" || event.key === " ") {
+															event.preventDefault();
+															handleOpenExpandedPreview();
+														}
 													}}
 												>
 													<Box component="img" src={selectedImageUrl} alt="Selected image" sx={{display: "block", width: "100%"}} />
+													<Chip
+														size="small"
+														icon={<OpenInNewRoundedIcon />}
+														label="Expand"
+														sx={{position: "absolute", top: 10, right: 10, backdropFilter: "blur(4px)"}}
+													/>
 												</Box>
 												<Chip size="small" label={selectedImageEntry?.mode === "image-to-image" ? "Image source" : "Prompt image"} />
 												<FormControlLabel
@@ -592,6 +635,40 @@ export function VideoStudio({
 						</motion.div>
 					</Stack>
 				</Box>
+				<Dialog
+					open={isExpandedPreviewOpen && hasSelection}
+					onClose={() => setIsExpandedPreviewOpen(false)}
+					fullWidth
+					maxWidth="lg"
+				>
+					<DialogContent
+						sx={{
+							p: 1,
+							background: alpha(theme.palette.background.default, 0.95),
+							display: "flex",
+							justifyContent: "center",
+							alignItems: "center",
+						}}
+					>
+						{selection?.kind === "video" ? (
+							<Box
+								component="video"
+								src={selectedVideoUrl}
+								controls
+								autoPlay
+								playsInline
+								sx={{display: "block", width: "100%", maxHeight: "82vh", borderRadius: 2}}
+							/>
+						) : (
+							<Box
+								component="img"
+								src={selectedImageUrl}
+								alt="Expanded selected media"
+								sx={{display: "block", width: "100%", maxHeight: "82vh", objectFit: "contain", borderRadius: 2}}
+							/>
+						)}
+					</DialogContent>
+				</Dialog>
 			</Box>
 		</ThemeProvider>
 	);

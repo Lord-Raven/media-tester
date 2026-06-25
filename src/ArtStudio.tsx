@@ -7,6 +7,8 @@ import {
 	Card,
 	CardContent,
 	Divider,
+	Dialog,
+	DialogContent,
 	FormControl,
 	FormControlLabel,
 	IconButton,
@@ -24,6 +26,7 @@ import ContentCopyRoundedIcon from "@mui/icons-material/ContentCopyRounded";
 import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
 import AutoAwesomeRoundedIcon from "@mui/icons-material/AutoAwesomeRounded";
 import BrushRoundedIcon from "@mui/icons-material/BrushRounded";
+import OpenInNewRoundedIcon from "@mui/icons-material/OpenInNewRounded";
 import UploadRoundedIcon from "@mui/icons-material/UploadRounded";
 import {alpha, createTheme, ThemeProvider} from "@mui/material/styles";
 
@@ -126,6 +129,7 @@ export function ArtStudio({
 	const [history, setHistory] = useState<ImageHistoryEntry[]>([]);
 	const [activeImageUrl, setActiveImageUrl] = useState("");
 	const [pendingDeleteUrl, setPendingDeleteUrl] = useState<string | null>(null);
+	const [isExpandedPreviewOpen, setIsExpandedPreviewOpen] = useState(false);
 	const uploadInputRef = useRef<HTMLInputElement | null>(null);
 
 	useEffect(() => {
@@ -268,6 +272,12 @@ export function ArtStudio({
 		};
 
 		reader.readAsDataURL(selectedFile);
+	}
+
+	function handleOpenExpandedPreview() {
+		if (activeImageUrl) {
+			setIsExpandedPreviewOpen(true);
+		}
 	}
 
 	return (
@@ -423,7 +433,7 @@ export function ArtStudio({
 												Selected Image
 											</Typography>
 											<Typography variant="h5" sx={{fontWeight: 800, mt: 0.5}}>
-												{activeImageUrl ? "Ready for generation" : "Waiting for image"}
+												{activeImageUrl ? "Preview" : "Waiting for image"}
 											</Typography>
 										</Box>
 
@@ -431,13 +441,32 @@ export function ArtStudio({
 											<>
 												<Box
 													sx={{
+														position: "relative",
 														borderRadius: 3,
 														overflow: "hidden",
 														border: `1px solid ${alpha(theme.palette.divider, 0.85)}`,
 														background: alpha(theme.palette.common.black, 0.28),
+														cursor: "zoom-in",
+													}}
+													onClick={handleOpenExpandedPreview}
+													role="button"
+													tabIndex={0}
+													onKeyDown={(event) => {
+														if (event.key === "Enter" || event.key === " ") {
+															event.preventDefault();
+															handleOpenExpandedPreview();
+														}
 													}}
 												>
 													<Box component="img" src={activeImageUrl} alt="Selected image" sx={{display: "block", width: "100%"}} />
+													<Button
+														size="small"
+														variant="contained"
+														startIcon={<OpenInNewRoundedIcon />}
+														sx={{position: "absolute", top: 10, right: 10, minWidth: 0, px: 1.2}}
+													>
+														Expand
+													</Button>
 												</Box>
 												<Button
 													variant="outlined"
@@ -577,6 +606,29 @@ export function ArtStudio({
 						</motion.div>
 					</Stack>
 				</Box>
+				<Dialog
+					open={isExpandedPreviewOpen && Boolean(activeImageUrl)}
+					onClose={() => setIsExpandedPreviewOpen(false)}
+					fullWidth
+					maxWidth="lg"
+				>
+					<DialogContent
+						sx={{
+							p: 1,
+							background: alpha(theme.palette.background.default, 0.95),
+							display: "flex",
+							justifyContent: "center",
+							alignItems: "center",
+						}}
+					>
+						<Box
+							component="img"
+							src={activeImageUrl}
+							alt="Expanded selected image"
+							sx={{display: "block", width: "100%", maxHeight: "82vh", objectFit: "contain", borderRadius: 2}}
+						/>
+					</DialogContent>
+				</Dialog>
 			</Box>
 		</ThemeProvider>
 	);
