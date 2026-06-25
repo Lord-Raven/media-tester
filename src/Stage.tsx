@@ -220,23 +220,35 @@ export class Stage extends StageBase<InitStateType, ChatStateType, MessageStateT
         });
     }
 
-    async generateWitchDialogue(context: string): Promise<{text: string, speechUrl: string}> {
+    async generateWitchDialogue(context: string): Promise<CommentHistoryEntry> {
         const dialogue = await this.generateText({
             prompt: `<WitchDialogueTask>` +
                 `\n\t<Premise>The Witch is a character in a media creation application. The user creates content using generative tools, and the Witch generally comments upon what the user is up to.</Premise>` +
-                `\n\t<Personality>The Witch is a sassy, fun-loving brewmaster who enjoys teasing and joking about what the user is creating. ` +
+                `\n\t<Personality>The Witch is a sassy, fun-loving brewmaster who enjoys suggestive teasing about whatever the user is creating. ` +
                     `She has a rival: 'the Wizard'. The Wizard is known for creating content for supplicants, but he is a know-it-all buzzkill who frequently gets it wrong. ` +
                     `The Witch, on the other hand, loves lending the user her tools and letting them create directly as they see fit, content to sit back and banter while the user works. ` +
                     `The Witch is a bombshell with dark robes, loads of pale cleavage, and an oversized pointy hat. She has dark red hair and violet eyes with a mischievous smile. ` +
                     `</Personality>` +
-                `\n\t<CommentHistory>${this.chatState.commentHistory.map(entry => `<Comment><Prompt>${entry.context}</Prompt><Response>${entry.text}</Response></Comment>`).join('')}</CommentHistory>` +
+                `\n\t<CommentHistory>${this.chatState.commentHistory.map(entry => `<Comment><Prompt>${entry.context}</Prompt><Response>${entry.text}[END]</Response></Comment>`).join('')}</CommentHistory>` +
                 `\n\t<Context>${context}</Context>` +
-                `\n\t<Instructions>The System will generate a short dialogue response from the Witch character based on the provided Context. When complete, output [END].</Instructions>` +
-                `\n\t<ExampleResponse>Oooh, I see what you're brewing up! Let's add a pinch of magic and a dash of mischief. [END]</ExampleResponse>` +
+                `\n\t<Instructions>The System will generate a short dialogue comment from the Witch character based on the provided Context. ` +
+                    `This is a straight line of speech that will become voiced, so it cannot contain actions or prose. After completing the line, output [END].</Instructions>` +
+                `\n\t<ExampleResponses>` +
+                `\n\t\t<ExampleResponse>Oooh, I see what you're brewing up! Let's add a pinch of magic and a dash of mischief.[END]</ExampleResponse>` +
+                `\n\t\t<ExampleResponse>Ha! The Wizard would never have thought to do it that way. You're a true master of your craft![END]</ExampleResponse>` +
+                `\n\t\t<ExampleResponse>What, pray tell, do you have in mind for _that_?[END]</ExampleResponse>` +
+                `\n\t</ExampleResponses>` +
                 `\n</WitchDialogueTask>`});
         
-        const result = {text: dialogue, speechUrl: await this.generateSpeech({transcript: dialogue, voice_id: '98bcf0b0-a0f7-4828-8686-4f8692293d68'})}
-        void this.addCommentToHistory({context: context, text: result.text, speechUrl: result.speechUrl});
+        let speechUrl = '';
+        try {
+            speechUrl = await this.generateSpeech({transcript: dialogue, voice_id: '98bcf0b0-a0f7-4828-8686-4f8692293d68'});
+        } catch (error) {
+            console.error('Error generating speech for Witch dialogue:', error);
+        }
+
+        const result = {context: context, text: dialogue, speechUrl: speechUrl};
+        void this.addCommentToHistory(result);
         return result;
     }
 

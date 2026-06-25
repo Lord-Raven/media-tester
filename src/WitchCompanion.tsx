@@ -257,7 +257,7 @@ const WitchCompanion = forwardRef<WitchCompanionHandle, WitchCompanionProps>(fun
 					transition={{duration: 0.26, ease: "easeOut"}}
 					style={{
 						position: "absolute",
-						right: "clamp(162px, 20vw, 305px)",
+						right: `5vw`,
 						bottom: `${yPosition + IDLE_HEIGHT}vh`,
 						maxWidth: "min(350px, 44vw)",
 						padding: "10px 14px",
