@@ -8,10 +8,12 @@ import {
 	CardContent,
 	Chip,
 	Divider,
+	FormControlLabel,
 	IconButton,
 	LinearProgress,
 	Paper,
 	Stack,
+	Switch,
 	TextField,
 	Typography,
 } from "@mui/material";
@@ -143,6 +145,7 @@ export function VideoStudio({
 	const [videos, setVideos] = useState<VideoHistoryEntry[]>([]);
 	const [images, setImages] = useState<ImageHistoryEntry[]>([]);
 	const [selection, setSelection] = useState<MediaSelection>(null);
+	const [isImageToVideo, setIsImageToVideo] = useState(false);
 	const [pendingDeleteSelection, setPendingDeleteSelection] = useState<MediaSelection>(null);
 
 	useEffect(() => {
@@ -170,7 +173,6 @@ export function VideoStudio({
 	}, [images, videos]);
 
 	const hasSelection = selection != null;
-	const isImageToVideo = selection?.kind === "image";
 	const selectedVideoUrl = selection?.kind === "video" ? selection.url : "";
 	const selectedImageUrl = selection?.kind === "image" ? selection.url : "";
 
@@ -195,6 +197,12 @@ export function VideoStudio({
 			}
 		}
 	}, [combinedHistory, selection]);
+
+	useEffect(() => {
+		if (selection?.kind !== "image" && isImageToVideo) {
+			setIsImageToVideo(false);
+		}
+	}, [isImageToVideo, selection]);
 
 	const canGenerate = useMemo(() => {
 		if (isGenerating) {
@@ -444,6 +452,16 @@ export function VideoStudio({
 													<Box component="img" src={selectedImageUrl} alt="Selected image" sx={{display: "block", width: "100%"}} />
 												</Box>
 												<Chip size="small" label={selectedImageEntry?.mode === "image-to-image" ? "Image source" : "Prompt image"} />
+												<FormControlLabel
+													control={
+														<Switch
+															checked={isImageToVideo}
+															onChange={(event) => setIsImageToVideo(event.target.checked)}
+															disabled={isGenerating}
+														/>
+													}
+													label={isImageToVideo ? "Image-to-video mode" : "Text-to-video mode"}
+												/>
 											</>
 										) : (
 											<Paper
