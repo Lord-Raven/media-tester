@@ -1,5 +1,5 @@
 import {useMemo, useState} from "react";
-import {Box, Paper, Tab, Tabs} from "@mui/material";
+import {Box, Tab, Tabs} from "@mui/material";
 import BrushRoundedIcon from "@mui/icons-material/BrushRounded";
 import MusicNoteRoundedIcon from "@mui/icons-material/MusicNoteRounded";
 import {alpha, createTheme, ThemeProvider} from "@mui/material/styles";
@@ -82,25 +82,11 @@ export function StudioWorkspace({
 		<ThemeProvider theme={theme}>
 			<Box
 				sx={{
-					position: "sticky",
-					top: 0,
-					zIndex: 20,
-					px: {xs: 2, md: 4},
-					pt: {xs: 2, md: 2.5},
-					pointerEvents: "none",
+					borderBottom: `1px solid ${alpha(theme.palette.divider, 0.85)}`,
+					backgroundColor: alpha(theme.palette.background.paper, 0.96),
 				}}
 			>
-				<Box sx={{maxWidth: 1200, mx: "auto"}}>
-					<Paper
-						elevation={0}
-						sx={{
-							borderRadius: 999,
-							backdropFilter: "blur(14px)",
-							background: alpha(theme.palette.background.paper, 0.8),
-							border: `1px solid ${alpha(theme.palette.divider, 0.8)}`,
-							pointerEvents: "auto",
-						}}
-					>
+				<Box sx={{maxWidth: 1200, mx: "auto", px: {xs: 2, md: 4}}}>
 						<Tabs
 							value={tab}
 							onChange={(_event, value: "music" | "art") => setTab(value)}
@@ -108,22 +94,25 @@ export function StudioWorkspace({
 							textColor="inherit"
 							indicatorColor="primary"
 							sx={{
-								minHeight: 56,
+								minHeight: 52,
+								"& .MuiTabs-indicator": {
+									height: 3,
+								},
 								"& .MuiTab-root": {
-									fontWeight: 700,
+									fontWeight: 600,
 									letterSpacing: 0.2,
-									minHeight: 56,
+									minHeight: 52,
+									textTransform: "none",
 								},
 							}}
 						>
 							<Tab icon={<MusicNoteRoundedIcon fontSize="small" />} iconPosition="start" label="Music Studio" value="music" />
 							<Tab icon={<BrushRoundedIcon fontSize="small" />} iconPosition="start" label="Art Studio" value="art" />
 						</Tabs>
-					</Paper>
 				</Box>
 			</Box>
 
-			<Box sx={{mt: {xs: -7, md: -8}}}>
+			<Box>
 				{tab === "music" ? (
 					<MusicStudio onGenerate={onGenerateMusic} trackHistory={trackHistory} onTrackGenerated={onTrackGenerated} />
 				) : (
