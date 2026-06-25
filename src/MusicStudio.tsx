@@ -45,9 +45,10 @@ type MusicStudioProps = {
 	onGenerate: (inputParameters: MusicInputParameters) => Promise<string>;
 	trackHistory: TrackEntry[];
 	onTrackGenerated: (trackEntry: TrackEntry) => Promise<void>;
+	onTrackDeleted: (url: string) => Promise<void>;
 };
 
-export function MusicStudio({onGenerate, trackHistory, onTrackGenerated}: MusicStudioProps) {
+export function MusicStudio({onGenerate, trackHistory, onTrackGenerated, onTrackDeleted}: MusicStudioProps) {
 	const theme = useMemo(
 		() =>
 			createTheme({
@@ -140,6 +141,18 @@ export function MusicStudio({onGenerate, trackHistory, onTrackGenerated}: MusicS
 
 	function removeTag(tagToRemove: string) {
 		setTags((currentTags) => currentTags.filter((tag) => tag !== tagToRemove));
+	}
+
+	async function handleDeleteTrack(url: string) {
+		if (!window.confirm("Remove this track from history?")) {
+			return;
+		}
+		setHistory((current) => current.filter((item) => item.url !== url));
+		try {
+			await onTrackDeleted(url);
+		} catch {
+			setErrorMessage("Failed to save history after deletion.");
+		}
 	}
 
 	async function handleGenerate() {
@@ -510,14 +523,19 @@ export function MusicStudio({onGenerate, trackHistory, onTrackGenerated}: MusicS
 															{entry.url}
 														</Typography>
 													</Box>
-													<IconButton
-														size="small"
-														href={entry.url}
-														target="_blank"
-														rel="noreferrer"
-													>
-														<PlayArrowRoundedIcon fontSize="small" />
-													</IconButton>
+													<Stack direction="row" spacing={0.5}>
+														<IconButton
+															size="small"
+															href={entry.url}
+															target="_blank"
+															rel="noreferrer"
+														>
+															<PlayArrowRoundedIcon fontSize="small" />
+														</IconButton>
+														<IconButton size="small" color="error" onClick={() => handleDeleteTrack(entry.url)}>
+															<DeleteOutlineRoundedIcon fontSize="small" />
+														</IconButton>
+													</Stack>
 												</Paper>
 											))}
 										</Stack>

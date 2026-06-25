@@ -21,7 +21,7 @@ import {
 	Typography,
 } from "@mui/material";
 import ContentCopyRoundedIcon from "@mui/icons-material/ContentCopyRounded";
-import OpenInNewRoundedIcon from "@mui/icons-material/OpenInNewRounded";
+import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
 import AutoAwesomeRoundedIcon from "@mui/icons-material/AutoAwesomeRounded";
 import BrushRoundedIcon from "@mui/icons-material/BrushRounded";
 import {alpha, createTheme, ThemeProvider} from "@mui/material/styles";
@@ -54,6 +54,7 @@ type ArtStudioProps = {
 	onGenerateImageFromImage: (inputParameters: ImageToImageInputParameters) => Promise<string>;
 	imageHistory: ImageHistoryEntry[];
 	onImageGenerated: (entry: ImageHistoryEntry) => Promise<void>;
+	onImageDeleted: (url: string) => Promise<void>;
 };
 
 const aspectRatios: AspectRatio[] = ["1:1", "16:9", "9:16", "21:9", "9:21", "2:3", "3:2", "4:3", "3:4"];
@@ -64,6 +65,7 @@ export function ArtStudio({
 	onGenerateImageFromImage,
 	imageHistory,
 	onImageGenerated,
+	onImageDeleted,
 }: ArtStudioProps) {
 	const theme = useMemo(
 		() =>
@@ -145,6 +147,21 @@ export function ArtStudio({
 
 		return true;
 	}, [activeImageUrl, isGenerating, isImageToImage]);
+
+	async function handleDeleteImage(url: string) {
+		if (!window.confirm("Remove this image from history?")) {
+			return;
+		}
+		setHistory((current) => current.filter((item) => item.url !== url));
+		if (activeImageUrl === url) {
+			setActiveImageUrl("");
+		}
+		try {
+			await onImageDeleted(url);
+		} catch {
+			setErrorMessage("Failed to save history after deletion.");
+		}
+	}
 
 	async function handleGenerate() {
 		setErrorMessage("");
@@ -447,8 +464,8 @@ export function ArtStudio({
 																		{entry.prompt || "(No prompt)"}
 																	</Typography>
 																</Box>
-																<IconButton size="small" href={entry.url} target="_blank" rel="noreferrer" onClick={(event) => event.stopPropagation()}>
-																	<OpenInNewRoundedIcon fontSize="small" />
+																<IconButton size="small" color="error" onClick={(event) => { event.stopPropagation(); handleDeleteImage(entry.url); }}>
+																	<DeleteOutlineRoundedIcon fontSize="small" />
 																</IconButton>
 															</Paper>
 														</motion.div>

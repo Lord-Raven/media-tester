@@ -126,6 +126,21 @@ export class Stage extends StageBase<InitStateType, ChatStateType, MessageStateT
         await this.save();
     }
 
+    private async removeTrackFromHistory(url: string): Promise<void> {
+        this.chatState.trackHistory = this.chatState.trackHistory.filter((entry) => entry.url !== url);
+        await this.save();
+    }
+
+    private async removeImageFromHistory(url: string): Promise<void> {
+        this.chatState.imageHistory = this.chatState.imageHistory.filter((entry) => entry.url !== url);
+        await this.save();
+    }
+
+    private async removeVideoFromHistory(url: string): Promise<void> {
+        this.chatState.videoHistory = this.chatState.videoHistory.filter((entry) => entry.url !== url);
+        await this.save();
+    }
+
     async load(): Promise<Partial<LoadResponse<InitStateType, ChatStateType, MessageStateType>>> {
         return {
             success: true,
@@ -225,14 +240,17 @@ export class Stage extends StageBase<InitStateType, ChatStateType, MessageStateT
             onGenerateMusic={(inputParameters) => this.generateMusic(inputParameters)}
             trackHistory={this.chatState.trackHistory}
             onTrackGenerated={(trackEntry) => this.addTrackToHistory(trackEntry)}
+            onTrackDeleted={(url) => this.removeTrackFromHistory(url)}
             onGenerateImage={(inputParameters) => this.generateImage(inputParameters)}
             onGenerateImageFromImage={(inputParameters) => this.generateImageFromImage(inputParameters)}
             imageHistory={this.chatState.imageHistory}
             onImageGenerated={(imageEntry) => this.addImageToHistory(imageEntry)}
+            onImageDeleted={(url) => this.removeImageFromHistory(url)}
             onGenerateVideo={(inputParameters) => this.generateVideo(inputParameters)}
             onGenerateVideoFromImage={(inputParameters) => this.generateVideoFromImage(inputParameters)}
             videoHistory={this.chatState.videoHistory}
             onVideoGenerated={(videoEntry) => this.addVideoToHistory(videoEntry)}
+            onVideoDeleted={(url) => this.removeVideoFromHistory(url)}
         />;
     }
 

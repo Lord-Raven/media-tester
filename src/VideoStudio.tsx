@@ -16,6 +16,7 @@ import {
 	Typography,
 } from "@mui/material";
 import AutoAwesomeRoundedIcon from "@mui/icons-material/AutoAwesomeRounded";
+import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
 import ImageRoundedIcon from "@mui/icons-material/ImageRounded";
 import MovieRoundedIcon from "@mui/icons-material/MovieRounded";
 import OpenInNewRoundedIcon from "@mui/icons-material/OpenInNewRounded";
@@ -55,6 +56,8 @@ type VideoStudioProps = {
 	videoHistory: VideoHistoryEntry[];
 	imageHistory: ImageHistoryEntry[];
 	onVideoGenerated: (entry: VideoHistoryEntry) => Promise<void>;
+	onVideoDeleted: (url: string) => Promise<void>;
+	onImageDeleted: (url: string) => Promise<void>;
 };
 
 const MIN_SECONDS = 5;
@@ -82,6 +85,8 @@ export function VideoStudio({
 	videoHistory,
 	imageHistory,
 	onVideoGenerated,
+	onVideoDeleted,
+	onImageDeleted,
 }: VideoStudioProps) {
 	const theme = useMemo(
 		() =>
@@ -202,6 +207,27 @@ export function VideoStudio({
 		const secondsValue = clampSeconds(Number(secondsInput));
 		return secondsValue >= MIN_SECONDS && secondsValue <= MAX_SECONDS;
 	}, [isGenerating, isImageToVideo, secondsInput, selectedImageUrl]);
+
+	async function handleDeleteEntry(kind: "video" | "image", url: string) {
+		if (!window.confirm(`Remove this ${kind} from history?`)) {
+			return;
+		}
+		if (kind === "video") {
+			setVideos((current) => current.filter((item) => item.url !== url));
+			try {
+				await onVideoDeleted(url);
+			} catch {
+				setErrorMessage("Failed to save history after deletion.");
+			}
+		} else {
+			setImages((current) => current.filter((item) => item.url !== url));
+			try {
+				await onImageDeleted(url);
+			} catch {
+				setErrorMessage("Failed to save history after deletion.");
+			}
+		}
+	}
 
 	async function handleGenerate() {
 		setErrorMessage("");
@@ -512,9 +538,14 @@ export function VideoStudio({
 																				: entry.data.prompt || "(No prompt)"}
 																		</Typography>
 																	</Box>
-																	<IconButton size="small" href={entry.data.url} target="_blank" rel="noreferrer" onClick={(event) => event.stopPropagation()}>
-																		<OpenInNewRoundedIcon fontSize="small" />
-																	</IconButton>
+																	<Stack direction="row" spacing={0.5} onClick={(event) => event.stopPropagation()}>
+																		<IconButton size="small" href={entry.data.url} target="_blank" rel="noreferrer">
+																			<OpenInNewRoundedIcon fontSize="small" />
+																		</IconButton>
+																		<IconButton size="small" color="error" onClick={() => handleDeleteEntry(entry.kind, entry.data.url)}>
+																			<DeleteOutlineRoundedIcon fontSize="small" />
+																		</IconButton>
+																	</Stack>
 																</Paper>
 															</motion.div>
 														);

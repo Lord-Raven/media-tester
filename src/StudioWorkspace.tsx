@@ -52,28 +52,34 @@ type StudioWorkspaceProps = {
 	onGenerateMusic: (inputParameters: MusicInputParameters) => Promise<string>;
 	trackHistory: TrackEntry[];
 	onTrackGenerated: (trackEntry: TrackEntry) => Promise<void>;
+	onTrackDeleted: (url: string) => Promise<void>;
 	onGenerateImage: (inputParameters: ImageInputParameters) => Promise<string>;
 	onGenerateImageFromImage: (inputParameters: ImageToImageInputParameters) => Promise<string>;
 	imageHistory: ImageHistoryEntry[];
 	onImageGenerated: (entry: ImageHistoryEntry) => Promise<void>;
+	onImageDeleted: (url: string) => Promise<void>;
 	onGenerateVideo: (inputParameters: VideoInputParameters) => Promise<string>;
 	onGenerateVideoFromImage: (inputParameters: ImageToVideoInputParameters) => Promise<string>;
 	videoHistory: VideoHistoryEntry[];
 	onVideoGenerated: (entry: VideoHistoryEntry) => Promise<void>;
+	onVideoDeleted: (url: string) => Promise<void>;
 };
 
 export function StudioWorkspace({
 	onGenerateMusic,
 	trackHistory,
 	onTrackGenerated,
+	onTrackDeleted,
 	onGenerateImage,
 	onGenerateImageFromImage,
 	imageHistory,
 	onImageGenerated,
+	onImageDeleted,
 	onGenerateVideo,
 	onGenerateVideoFromImage,
 	videoHistory,
 	onVideoGenerated,
+	onVideoDeleted,
 }: StudioWorkspaceProps) {
 	const [tab, setTab] = useState<"music" | "art" | "video">("music");
 
@@ -138,13 +144,14 @@ export function StudioWorkspace({
 
 			<Box>
 				{tab === "music" ? (
-					<MusicStudio onGenerate={onGenerateMusic} trackHistory={trackHistory} onTrackGenerated={onTrackGenerated} />
+					<MusicStudio onGenerate={onGenerateMusic} trackHistory={trackHistory} onTrackGenerated={onTrackGenerated} onTrackDeleted={onTrackDeleted} />
 				) : tab === "art" ? (
 					<ArtStudio
 						onGenerateImage={onGenerateImage}
 						onGenerateImageFromImage={onGenerateImageFromImage}
 						imageHistory={imageHistory}
 						onImageGenerated={onImageGenerated}
+						onImageDeleted={onImageDeleted}
 					/>
 				) : (
 					<VideoStudio
@@ -153,6 +160,8 @@ export function StudioWorkspace({
 						videoHistory={videoHistory}
 						imageHistory={imageHistory}
 						onVideoGenerated={onVideoGenerated}
+						onVideoDeleted={onVideoDeleted}
+						onImageDeleted={onImageDeleted}
 					/>
 				)}
 			</Box>
