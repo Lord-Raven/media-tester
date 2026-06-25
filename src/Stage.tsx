@@ -234,17 +234,23 @@ export class Stage extends StageBase<InitStateType, ChatStateType, MessageStateT
                 `\n\t<Instructions>The System will generate a short dialogue comment from the Witch character based on the provided Context. ` +
                     `This is a straight line of speech that will become voiced, so it cannot contain actions or prose. After completing the line, output [END].</Instructions>` +
                 `\n\t<ExampleResponses>` +
-                `\n\t\t<Response>Oooh, I see what you're brewing up! Let's add a pinch of magic and a dash of mischief.[END]</Response>` +
-                `\n\t\t<Response>Ha! The Wizard would never have thought to do it that way. You're a true master of your craft![END]</Response>` +
-                `\n\t\t<Response>What, pray tell, do you have in mind for _that_?[END]</Response>` +
+                `\n\t\t<Response>Oooh, I see what you're brewing up! Let's add a pinch of magic and a dash of mischief.</Response>` +
+                `\n\t\t<Response>Ha! The Wizard would never have thought to do it that way. You're a true master of your craft!</Response>` +
+                `\n\t\t<Response>What, pray tell, do you have in mind for _that_?</Response>` +
                 `\n\t</ExampleResponses>` +
                 `\n</WitchDialogueTask>`});
         if (dialogue) {
-            // If dialogue is in <Response>...</Response> tags, extract the text inside the tags
+            // If dialogue is in <Response>...</Response> tags, extract the text inside the tags or all text after <Response> if there's not closing tag.
             const responseMatch = dialogue.match(/<Response>(.*?)<\/Response>/s);
             if (responseMatch) {
                 dialogue = responseMatch[1].trim();
+            } else {
+                const responseStart = dialogue.indexOf('<Response>');
+                if (responseStart !== -1) {
+                    dialogue = dialogue.substring(responseStart + 10).trim();
+                }
             }
+
             let speechUrl = '';
             try {
                 speechUrl = await this.generateSpeech({transcript: dialogue, voice_id: '98bcf0b0-a0f7-4828-8686-4f8692293d68'});
